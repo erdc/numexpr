@@ -520,7 +520,10 @@ def disassemble(nex):
     def getArg(pc, offset):
         arg = ord(nex.program[pc+offset])
         op = rev_opcodes.get(ord(nex.program[pc]))
-        code = op.split('_')[1][offset-1]
+        try:
+            code = op.split('_')[1][offset-1]
+        except IndexError:
+            return None
         if arg == 255:
             return None
         if code != 'n':
@@ -608,6 +611,11 @@ def evaluate(ex, local_dict=None, global_dict=None, **kwargs):
         # long as they are undimensional (strides in other
         # dimensions are dealt within the extension), so we don't
         # need a copy for the strided case.
+
+        #XXX: fix this: copy if array is not contiguous AND vml is in use
+        if not b.flags.contiguous: #XXX add check for vml
+            b = b.copy()
+
         if not b.flags.aligned:
             # For the unaligned case, we have two cases:
             if b.ndim == 1:
@@ -624,6 +632,8 @@ def evaluate(ex, local_dict=None, global_dict=None, **kwargs):
                 # other than the last one (whose case is supported by
                 # the copy opcode).
                 b = b.copy()
+
+
         arguments.append(b)
 
     # Create a signature

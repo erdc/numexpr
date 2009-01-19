@@ -7,6 +7,10 @@
 
 #include "complex_functions.inc"
 
+#ifdef USE_VML
+#include "mkl_vml.h"
+#endif
+
 #ifdef _WIN32
 #define inline __inline
 #include "missing_posix_functions.inc"
@@ -370,7 +374,7 @@ enum FuncFFCodes {
 typedef double (*FuncFFPtr)(double);
 
 /* The order of this array must match the FuncFFCodes enum above */
-FuncFFPtr functions_f[] = {
+FuncFFPtr functions_ff[] = {
     sqrt,
     sin,
     cos,
@@ -391,6 +395,30 @@ FuncFFPtr functions_f[] = {
     expm1,
 };
 
+#ifdef USE_VML
+typedef void (*FuncFFPtr_vml)(int, const double*, double*);
+FuncFFPtr_vml functions_ff_vml[] = {
+    vdSqrt,
+    vdSin,
+    vdCos,
+    vdTan,
+    vdAsin,
+    vdAcos,
+    vdAtan,
+    vdSinh,
+    vdCosh,
+    vdTanh,
+    vdAsinh,
+    vdAcosh,
+    vdAtanh,
+    vdLn,
+    vdLog1p,
+    vdLog10,
+    vdExp,
+    vdExpm1,
+};
+#endif
+
 enum FuncFFFCodes {
     FUNC_FMOD_FFF = 0,
     FUNC_ARCTAN2_FFF,
@@ -400,10 +428,28 @@ enum FuncFFFCodes {
 
 typedef double (*FuncFFFPtr)(double, double);
 
-FuncFFFPtr functions_ff[] = {
+FuncFFFPtr functions_fff[] = {
     fmod,
     atan2,
 };
+
+#ifdef USE_VML
+/* fmod not available in VML */
+static void vdfmod(int n, const double* x1, const double* x2, double* dest)
+{
+    int j;
+    for(j=0; j < n; j++) {
+	dest[j] = fmod(x1[j], x2[j]);
+    };
+};
+
+typedef void (*FuncFFFPtr_vml)(int, const double*, const double*, double*);
+FuncFFFPtr_vml functions_fff_vml[] = {
+    vdfmod,
+    vdAtan2,
+};
+#endif
+
 
 enum FuncCCCodes {
     FUNC_SQRT_CC = 0,
@@ -453,6 +499,53 @@ FuncCCPtr functions_cc[] = {
     nc_exp,
     nc_expm1,
 };
+
+#ifdef USE_VML
+/* complex expm1 not available in VML */
+static void vzExpm1(int n, const cdouble* x1, cdouble* dest)
+{
+    int j;
+    vzExp(n, x1, dest);
+    for (j=0; j<n; j++) {
+	dest[j].real -= 1.0;
+    };
+};
+
+static void vzLog1p(int n, const cdouble* x1, cdouble* dest)
+{
+    int j;
+    for (j=0; j<n; j++) {
+	dest[j].real = x1[j].real + 1;
+	dest[j].imag = x1[j].imag;
+    };
+    vzLn(n, dest, dest);
+};
+
+typedef void (*FuncCCPtr_vml)(int, const MKL_Complex16[], MKL_Complex16[]);
+
+/* The order of this array must match the FuncCCCodes enum above */
+FuncCCPtr_vml functions_cc_vml[] = {
+    vzSqrt,
+    vzSin,
+    vzCos,
+    vzTan,
+    vzAsin,
+    vzAcos,
+    vzAtan,
+    vzSinh,
+    vzCosh,
+    vzTanh,
+    vzAsinh,
+    vzAcosh,
+    vzAtanh,
+    vzLn,
+    vzLog1p, //poor approximation
+    vzLog10,
+    vzExp, 
+    vzExpm1, //poor approximation
+};
+#endif
+
 
 enum FuncCCCCodes {
     FUNC_POW_CCC = 0,
@@ -1125,6 +1218,12 @@ run_interpreter(NumExprObject *self, int len, char *output, char **inputs,
     params.prog_len = plen;
     if ((params.n_inputs = PyObject_Length(self->signature)) == -1)
         return -1;
+
+#ifdef USE_VML
+    //choose VML accuracy mode
+    vmlSetMode(VML_LA | VML_DOUBLE_CONSISTENT | VML_ERRMODE_IGNORE);
+#endif
+
     params.output = output;
     params.inputs = inputs;
     params.index_data = index_data;

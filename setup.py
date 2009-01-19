@@ -8,16 +8,41 @@ import os.path
 
 import numpy
 
+#use_vml = False
+use_vml = True
+
+
 extra_setup_opts = {}
 if setuptools:
     extra_setup_opts['zip_safe'] = False
+
+if use_vml:
+    intel_root = "/opt/intel/Compiler/11.0/074"   # XXX site-dependent
+    vml_include_dirs = [os.path.join(intel_root, 'mkl/include')]
+    vml_library_dirs = [os.path.join(intel_root, 'mkl/lib/em64t')]
+    vml_library_dirs += [os.path.join(intel_root, 'lib/intel64')]
+    vml_libraries = ['mkl_gf_lp64',
+                     'mkl_gnu_thread',
+                     'mkl_core',
+                     'iomp5',
+                     #'gfortran',  # XXX I don't seem to need it
+                     ]
+    vml_compile_args = ['-DUSE_VML']
+else:
+    vml_include_dirs = []
+    vml_library_dirs = []
+    vml_libraries = []
+    vml_compile_args = []
 
 interpreter_ext = Extension('numexpr.interpreter',
                             sources=['numexpr/interpreter.c'],
                             depends = ['numexpr/interp_body.c',
                                        'numexpr/complex_functions.inc'],
-                            include_dirs=[numpy.get_include()],
-                            extra_compile_args=['-funroll-all-loops']
+                            include_dirs=[numpy.get_include()] + \
+                                vml_include_dirs,
+                            library_dirs = vml_library_dirs,
+                            libraries = vml_libraries,
+                            extra_compile_args=['-funroll-all-loops'] + vml_compile_args
                             )
 
 class build_ext(old_build_ext):
