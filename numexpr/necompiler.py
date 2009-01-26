@@ -1,7 +1,7 @@
 import sys
 import numpy
 
-from numexpr import interpreter, expressions
+from numexpr import interpreter, expressions, use_vml
 
 typecode_to_kind = {'b': 'bool', 'i': 'int', 'l': 'long', 'f': 'float',
                     'c': 'complex', 's': 'str', 'n' : 'none'}
@@ -570,6 +570,23 @@ def getExprNames(text, context):
     input_order = getInputOrder(ast, None)
     return [a.value for a in input_order]
 
+def get_ex_uses_vml(text, context):
+    if not use_vml:
+        return False
+    #TODO: join with getExprNames
+    #TODO: this might fails due to optimization, e.g., pow -> mul
+    vml_ops = ['sin', 'cos', 'exp', 'log', 'expm1', 'log1p', 'pow', 'div', 'sqrt', 'inv', 'sinh', 'cosh', 'tanh', 'arcsin', 'arccos', 'arctan', 'arccosh', 'arcsinh', 'arctanh', 'arctan2']
+    ex = stringToExpression(text, {}, context)
+    ast = expressionToAST(ex)
+
+    for node in ast.postorderWalk():
+        if node.astType == 'op' and node.value in vml_ops:
+            ex_uses_vml = True
+            break
+    else:
+        ex_uses_vml = False
+    return ex_uses_vml
+    
 
 _names_cache = {}
 _numexpr_cache = {}
@@ -589,6 +606,10 @@ def evaluate(ex, local_dict=None, global_dict=None, **kwargs):
     # Get the names for this expression
     expr_key = (ex, tuple(sorted(kwargs.items())))
     if expr_key not in _names_cache:
+        # Avoid the cache from growing too much
+        if len(_names_cache) > 256:
+            for key in _names_cache.keys()[:10]:
+                del _names_cache[key]
         context = getContext(kwargs)
         _names_cache[expr_key] = getExprNames(ex, context)
     names = _names_cache[expr_key]
@@ -600,6 +621,12 @@ def evaluate(ex, local_dict=None, global_dict=None, **kwargs):
         global_dict = call_frame.f_globals
     arguments = []
     copy_args = []
+
+    #check if expression uses vml functions
+    #TODO: this should better be done with compiled/optimized expression
+    #TODO: cache this result
+    ex_uses_vml = get_ex_uses_vml(ex, getContext(kwargs))
+
     for name in names:
         try:
             a = local_dict[name]
@@ -611,11 +638,7 @@ def evaluate(ex, local_dict=None, global_dict=None, **kwargs):
         # long as they are undimensional (strides in other
         # dimensions are dealt within the extension), so we don't
         # need a copy for the strided case.
-
-        #XXX: fix this: copy if array is not contiguous AND vml is in use
-        if not b.flags.contiguous: #XXX add check for vml
-            b = b.copy()
-
+        
         if not b.flags.aligned:
             # For the unaligned case, we have two cases:
             if b.ndim == 1:
@@ -632,7 +655,13 @@ def evaluate(ex, local_dict=None, global_dict=None, **kwargs):
                 # other than the last one (whose case is supported by
                 # the copy opcode).
                 b = b.copy()
-
+        elif use_vml and ex_uses_vml: #only make a copy of strided arrays if
+                                      #vml is in use
+            if not b.flags.contiguous:
+                if b.ndim == 1:
+                    copy_args.append(name)
+                else:
+                    b = b.copy()
 
         arguments.append(b)
 
@@ -644,6 +673,10 @@ def evaluate(ex, local_dict=None, global_dict=None, **kwargs):
     try:
         compiled_ex = _numexpr_cache[numexpr_key]
     except KeyError:
+        # Avoid the cache from growing too much
+        if len(_numexpr_cache) > 256:
+            for key in _numexpr_cache.keys()[:10]:
+                del _numexpr_cache[key]
         compiled_ex = _numexpr_cache[numexpr_key] = \
                       numexpr(ex, signature, copy_args, **kwargs)
     return compiled_ex(*arguments)
