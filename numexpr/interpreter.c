@@ -7,8 +7,13 @@
 
 #include "complex_functions.inc"
 
+#ifdef SCIPY_MKL_H
+#define USE_VML
+#endif
+
 #ifdef USE_VML
 #include "mkl_vml.h"
+#include "mkl_service.h"
 #endif
 
 #ifdef _WIN32
@@ -17,6 +22,8 @@
 #endif
 
 /* The values below have been tuned for a nowadays Core2 processor */
+/* Note: with VML functions a larger block size (e.g. 4096) allows to make use
+ * of the automatic multithreading capabilities of the VML library */
 #define BLOCK_SIZE1 256
 #define BLOCK_SIZE2 8
 
@@ -1219,11 +1226,6 @@ run_interpreter(NumExprObject *self, int len, char *output, char **inputs,
     if ((params.n_inputs = PyObject_Length(self->signature)) == -1)
         return -1;
 
-#ifdef USE_VML
-    //choose VML accuracy mode
-    vmlSetMode(VML_LA | VML_DOUBLE_CONSISTENT | VML_ERRMODE_IGNORE);
-#endif
-
     params.output = output;
     params.inputs = inputs;
     params.index_data = index_data;
@@ -1410,8 +1412,8 @@ NumExpr_run(NumExprObject *self, PyObject *args, PyObject *kwds)
                here, and not in Python space. */
             intp inner_size;
             for (j = PyArray_NDIM(a)-2; j >= 0; j--) {
-                inner_size = PyArray_STRIDE(a, j) * PyArray_DIM(a, j);
-                if (PyArray_STRIDE(a, j+1) != inner_size) {
+                inner_size = PyArray_STRIDE(a, j+1) * PyArray_DIM(a, j+1);
+                if (PyArray_STRIDE(a, j) != inner_size) {
                     intp dims[1] = {BLOCK_SIZE1};
                     inddata[i+1].count = PyArray_NDIM(a);
                     inddata[i+1].findex = -1;
@@ -1606,7 +1608,40 @@ static PyTypeObject NumExprType = {
     NumExpr_new,               /* tp_new */
 };
 
+
+#ifdef USE_VML
+static PyObject *
+set_vml_accuracy_mode(PyObject *self, PyObject *args)
+{
+    int mode_in;
+    if (!PyArg_ParseTuple(args, "i", &mode_in))
+	return NULL;
+    vmlSetMode((mode_in & VML_ACCURACY_MASK) | VML_ERRMODE_IGNORE );
+    return Py_BuildValue("i", vmlGetMode());
+    //Py_RETURN_NONE;
+}
+
+static PyObject *
+set_num_threads(PyObject *self, PyObject *args)
+{
+    int max_num_threads;
+    if (!PyArg_ParseTuple(args, "i", &max_num_threads))
+	return NULL;
+    
+    //omp_set_num_threads(max_num_threads);
+    mkl_domain_set_num_threads(max_num_threads, MKL_VML);
+    Py_RETURN_NONE;
+}
+
+#endif
+
 static PyMethodDef module_methods[] = {
+#ifdef USE_VML
+    {"set_vml_accuracy_mode", set_vml_accuracy_mode, METH_VARARGS, 
+     "set accuracy mode for VML functions ('high', 'low', 'fast')"},
+    {"set_num_threads", set_num_threads, METH_VARARGS,
+     "set maximum number of threads"},
+#endif
     {NULL}
 };
 
