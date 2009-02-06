@@ -3,15 +3,15 @@
 def configuration():
     from numpy.distutils.misc_util import Configuration, dict_append
     from numpy.distutils.system_info import system_info
-    
+
     config = Configuration(package_name = 'numexpr')
-    
+
     #try to find configuration for MKL, either from environment or site.cfg
     mkl_config_data = config.get_info('mkl')
     #some version of MKL need to be linked with libgfortran, for this, use
     #entries of DEFAULT section in site.cfg
     default_config = system_info()
-    dict_append(mkl_config_data, 
+    dict_append(mkl_config_data,
                 libraries = default_config.get_libraries(),
                 library_dirs = default_config.get_lib_dirs() )
 
@@ -23,7 +23,7 @@ def configuration():
     dict_append(extension_config_data, **mkl_config_data)
     config.add_extension('interpreter',
                          **extension_config_data)
-    
+
     config.make_config_py()
     config.add_data_files( ('', '*.txt'),
                            #('', 'site.cfg.example'),
@@ -32,7 +32,7 @@ def configuration():
     config.add_subpackage('tests', 'numexpr/tests')
 
     #version handling
-    config.make_svn_version_py()    
+    config.make_svn_version_py()
     config.get_version('numexpr/version.py')
     return config
 

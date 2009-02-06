@@ -253,7 +253,7 @@
 #else
 	    VEC_ARG2(f_dest = f1 / f2);
 #endif
-        case OP_POW_FFF: 
+        case OP_POW_FFF:
 #ifdef USE_VML
 	    VEC_ARG2_VML(vdPow(VECTOR_SIZE, (double*)x1, (double*)x2, (double*)dest));
 #else
@@ -270,7 +270,7 @@
 
         case OP_WHERE_FBFF: VEC_ARG3(f_dest = b1 ? f2 : f3);
 
-        case OP_FUNC_FF: 
+        case OP_FUNC_FF:
 #ifdef USE_VML
 	    VEC_ARG1_VML(functions_ff_vml[arg2](VECTOR_SIZE, (double*)x1,(double*)dest));
 #else
@@ -298,7 +298,7 @@
                                   ci_dest = c1i + c2i);
         case OP_SUB_CCC: VEC_ARG2(cr_dest = c1r - c2r;
                                   ci_dest = c1i - c2i);
-        case OP_MUL_CCC: 
+        case OP_MUL_CCC:
 #ifdef USE_VML
 	    VEC_ARG2_VML(vzMul(VECTOR_SIZE, (cdouble*)x1, (cdouble*)x2, (cdouble*)dest));
 #else

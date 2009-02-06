@@ -586,7 +586,7 @@ def get_ex_uses_vml(text, context):
     else:
         ex_uses_vml = False
     return ex_uses_vml
-    
+
 
 _names_cache = {}
 _numexpr_cache = {}
@@ -638,7 +638,7 @@ def evaluate(ex, local_dict=None, global_dict=None, **kwargs):
         # long as they are undimensional (strides in other
         # dimensions are dealt within the extension), so we don't
         # need a copy for the strided case.
-        
+
         if not b.flags.aligned:
             # For the unaligned case, we have two cases:
             if b.ndim == 1:

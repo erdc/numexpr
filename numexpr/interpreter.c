@@ -557,7 +557,7 @@ FuncCCPtr_vml functions_cc_vml[] = {
     vzLn,
     vzLog1p, //poor approximation
     vzLog10,
-    vzExp, 
+    vzExp,
     vzExpm1, //poor approximation
 };
 #endif
@@ -1636,7 +1636,7 @@ set_num_threads(PyObject *self, PyObject *args)
     int max_num_threads;
     if (!PyArg_ParseTuple(args, "i", &max_num_threads))
 	return NULL;
-    
+
     //omp_set_num_threads(max_num_threads);
     mkl_domain_set_num_threads(max_num_threads, MKL_VML);
     Py_RETURN_NONE;
@@ -1646,7 +1646,7 @@ set_num_threads(PyObject *self, PyObject *args)
 
 static PyMethodDef module_methods[] = {
 #ifdef USE_VML
-    {"set_vml_accuracy_mode", set_vml_accuracy_mode, METH_VARARGS, 
+    {"set_vml_accuracy_mode", set_vml_accuracy_mode, METH_VARARGS,
      "set accuracy mode for VML functions ('high', 'low', 'fast')"},
     {"set_num_threads", set_num_threads, METH_VARARGS,
      "set maximum number of threads"},
