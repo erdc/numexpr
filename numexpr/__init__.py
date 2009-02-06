@@ -1,6 +1,7 @@
 from __config__ import show as show_config, get_info
 if get_info('mkl'):
     use_vml = True
+    from numexpr.interpreter import set_vml_accuracy_mode, set_num_threads
 else:
     use_vml = False
 

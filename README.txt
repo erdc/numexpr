@@ -138,8 +138,15 @@ Numexpr is written by David Cooke <david.m.cooke@gmail.com> and Tim
 Hochberg <tim.hochberg@ieee.org>.  Francesc Alted
 <faltet@pytables.org> contributed support for booleans and for
 efficient strided and unaligned array operations.  Ivan Vilata
-<ivilata@selidor.net> contributed support for strings.  It is
-distributed under the MIT license (see LICENSE.txt file).
+<ivilata@selidor.net> contributed support for strings.  Gregor
+Thalhammer <Gregor.Thalhammer@gmail.com> implemented the support for
+Intel VML (Vector Math Library).
+
+
+License
+=======
+
+Numexpr is distributed under the MIT license (see LICENSE.txt file).
 
 
 
