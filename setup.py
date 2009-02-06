@@ -14,7 +14,7 @@ def configuration():
     from numpy.distutils.system_info import system_info
 
     config = Configuration(package_name = 'numexpr')
-    
+
     #try to find configuration for MKL, either from environment or site.cfg
     mkl_config_data = config.get_info('mkl')
     #some version of MKL need to be linked with libgfortran, for this, use
@@ -34,11 +34,12 @@ def configuration():
                          **extension_config_data)
 
     config.make_config_py()
-    config.add_data_files( ('', '*.txt'),
-                           #('', 'site.cfg.example'),
-                           #('numexpr', 'VERSION'),
-                           )
-    config.add_subpackage('tests', 'numexpr/tests')
+    # XXX Commenting the next lines out suppresses warnings during building
+    # What are they for?
+#     config.add_data_files( ('', '*.txt'),
+#                            #('', 'site.cfg.example'),
+#                            )
+#     config.add_subpackage('tests', 'numexpr/tests')
 
     #version handling
     config.make_svn_version_py()
@@ -52,7 +53,7 @@ def setup_package():
     extra_setup_opts['cmdclass'] = {'build_ext': build_ext}
     setup(name='numexpr',
           description='Fast numerical expression evaluator for NumPy',
-          author='David M. Cooke and others',
+          author='David M. Cooke, Francesc Alted and others',
           author_email='david.m.cooke@gmail.com, faltet@pytables.org',
           url='http://code.google.com/p/numexpr/',
           license = 'MIT',
@@ -80,6 +81,6 @@ class build_ext(numpy_build_ext):
         numpy_build_ext.build_extension(self, ext)
         if old_compile_options is not None:
             self.compiler.compile_options = old_compile_options
-    
+
 if __name__ == '__main__':
     setup_package()
