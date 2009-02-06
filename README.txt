@@ -95,6 +95,31 @@ The next are the current supported set:
 More functions can be added if you need them.
 
 
+== Intel's VML specific support ==
+
+When compiled with Intel's VML (Vector Math Library), you will get
+access to a couple of additional functions, namely:
+
+  * set_vml_accuracy_mode(mode):  Set the accuracy for VML operations.
+    The `mode` parameter can take the values:
+
+    - 1: Equivalent to VML_LA - low accuracy VML functions are called
+    - 2: Equivalent to VML_HA - high accuracy VML functions are called
+    - 3: Equivalent to VML_EP - enhanced accuracy VML functions are called
+
+  This call is equivalent to the `vmlSetMode()` in the VML library.
+  See [1]_ for more info on the accuracy modes.
+
+  * set_num_threads(nthreads): Suggests the number of threads for a
+    particular function domain.
+
+  This call is equivalent to the `mkl_domain_set_num_threads()` in the
+  MKL library.  See [2]_ this reference] for more info about it.
+
+.. [1] http://www.intel.com/software/products/mkl/docs/webhelp/vml/vml_DataTypesAccuracyModes.html
+.. [2] http://www.intel.com/software/products/mkl/docs/webhelp/support/functn_mkl_domain_set_num_threads.html
+
+
 How Numexpr can achieve such a high performance?
 ================================================
 
