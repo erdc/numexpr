@@ -119,8 +119,8 @@ if __name__ == '__main__':
     print "NumPy version:     %s" % numpy.__version__
     print "use vml            %s" % numexpr.use_vml
 
-    numexpr.set_vml_accuracy_mode(1)
-    numexpr.set_num_threads(2)
+    numexpr.set_vml_accuracy_mode('low')
+    numexpr.set_vml_num_threads(2)
 
     if len(sys.argv) > 1:
         expression = sys.argv[1]
