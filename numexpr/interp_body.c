@@ -298,19 +298,18 @@
                                   ci_dest = c1i + c2i);
         case OP_SUB_CCC: VEC_ARG2(cr_dest = c1r - c2r;
                                   ci_dest = c1i - c2i);
-        case OP_MUL_CCC:
-#ifdef USE_VML
-	    VEC_ARG2_VML(vzMul(VECTOR_SIZE, (cdouble*)x1, (cdouble*)x2, (cdouble*)dest));
+        case OP_MUL_CCC: VEC_ARG2(fa = c1r*c2r - c1i*c2i;
+				  ci_dest = c1r*c2i + c1i*c2r;
+				  cr_dest = fa);
+        case OP_DIV_CCC:
+#ifdef USE_VMLXXX /* VML complex division is slower */
+	    VEC_ARG2_VML(vzDiv(VECTOR_SIZE, (const MKL_Complex16*)x1, (const MKL_Complex16*)x2, (MKL_Complex16*)dest));
 #else
-	    VEC_ARG2(fa = c1r*c2r - c1i*c2i;
-		     ci_dest = c1r*c2i + c1i*c2r;
-		     cr_dest = fa);
+	    VEC_ARG2(fa = c2r*c2r + c2i*c2i;
+		     fb = (c1r*c2r + c1i*c2i) / fa;
+		     ci_dest = (c1i*c2r - c1r*c2i) / fa;
+		     cr_dest = fb);
 #endif
-        case OP_DIV_CCC: VEC_ARG2(fa = c2r*c2r + c2i*c2i;
-                                  fb = (c1r*c2r + c1i*c2i) / fa;
-                                  ci_dest = (c1i*c2r - c1r*c2i) / fa;
-                                  cr_dest = fb);
-
         case OP_EQ_BCC: VEC_ARG2(b_dest = (c1r == c2r && c1i == c2i));
         case OP_NE_BCC: VEC_ARG2(b_dest = (c1r != c2r || c1i != c2i));
 
@@ -318,7 +317,7 @@
                                      ci_dest = b1 ? c2i : c3i);
         case OP_FUNC_CC:
 #ifdef USE_VML
-	    VEC_ARG1_VML(functions_cc_vml[arg2](VECTOR_SIZE, (const cdouble*)x1,(cdouble*)dest));
+	    VEC_ARG1_VML(functions_cc_vml[arg2](VECTOR_SIZE, (const MKL_Complex16*)x1, (MKL_Complex16*)dest));
 #else
 	    VEC_ARG1(ca.real = c1r;
 		     ca.imag = c1i;
