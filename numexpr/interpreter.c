@@ -518,7 +518,7 @@ FuncCCPtr functions_cc[] = {
 
 #ifdef USE_VML
 /* complex expm1 not available in VML */
-static void vzExpm1(int n, const cdouble* x1, cdouble* dest)
+static void vzExpm1(int n, const MKL_Complex16* x1, MKL_Complex16* dest)
 {
     int j;
     vzExp(n, x1, dest);
@@ -527,7 +527,7 @@ static void vzExpm1(int n, const cdouble* x1, cdouble* dest)
     };
 };
 
-static void vzLog1p(int n, const cdouble* x1, cdouble* dest)
+static void vzLog1p(int n, const MKL_Complex16* x1, MKL_Complex16* dest)
 {
     int j;
     for (j=0; j<n; j++) {
@@ -1620,24 +1620,22 @@ static PyTypeObject NumExprType = {
 
 #ifdef USE_VML
 static PyObject *
-set_vml_accuracy_mode(PyObject *self, PyObject *args)
+_set_vml_accuracy_mode(PyObject *self, PyObject *args)
 {
-    int mode_in;
+    int mode_in, mode_old;
     if (!PyArg_ParseTuple(args, "i", &mode_in))
 	return NULL;
+    mode_old = vmlGetMode() & VML_ACCURACY_MASK; 
     vmlSetMode((mode_in & VML_ACCURACY_MASK) | VML_ERRMODE_IGNORE );
-    return Py_BuildValue("i", vmlGetMode());
-    //Py_RETURN_NONE;
+    return Py_BuildValue("i", mode_old);
 }
 
 static PyObject *
-set_num_threads(PyObject *self, PyObject *args)
+_set_vml_num_threads(PyObject *self, PyObject *args)
 {
     int max_num_threads;
     if (!PyArg_ParseTuple(args, "i", &max_num_threads))
 	return NULL;
-
-    //omp_set_num_threads(max_num_threads);
     mkl_domain_set_num_threads(max_num_threads, MKL_VML);
     Py_RETURN_NONE;
 }
@@ -1646,10 +1644,10 @@ set_num_threads(PyObject *self, PyObject *args)
 
 static PyMethodDef module_methods[] = {
 #ifdef USE_VML
-    {"set_vml_accuracy_mode", set_vml_accuracy_mode, METH_VARARGS,
-     "set accuracy mode for VML functions ('high', 'low', 'fast')"},
-    {"set_num_threads", set_num_threads, METH_VARARGS,
-     "set maximum number of threads"},
+    {"_set_vml_accuracy_mode", _set_vml_accuracy_mode, METH_VARARGS,
+     "set accuracy mode for VML functions"},
+    {"_set_vml_num_threads", _set_vml_num_threads, METH_VARARGS,
+     "set maximum number of threads used for VML functions"},
 #endif
     {NULL}
 };
