@@ -563,29 +563,29 @@ def getType(a):
         return str
     raise ValueError("unkown type %s" % a.dtype.name)
 
-
 def getExprNames(text, context):
     ex = stringToExpression(text, {}, context)
     ast = expressionToAST(ex)
     input_order = getInputOrder(ast, None)
-    return [a.value for a in input_order]
-
-def get_ex_uses_vml(text, context):
+    #try to figure out if vml operations are used by expression
     if not use_vml:
-        return False
-    #TODO: join with getExprNames
-    #TODO: this might fails due to optimization, e.g., pow -> mul
-    vml_ops = ['sin', 'cos', 'exp', 'log', 'expm1', 'log1p', 'pow', 'div', 'sqrt', 'inv', 'sinh', 'cosh', 'tanh', 'arcsin', 'arccos', 'arctan', 'arccosh', 'arcsinh', 'arctanh', 'arctan2']
-    ex = stringToExpression(text, {}, context)
-    ast = expressionToAST(ex)
-
-    for node in ast.postorderWalk():
-        if node.astType == 'op' and node.value in vml_ops:
-            ex_uses_vml = True
-            break
-    else:
         ex_uses_vml = False
-    return ex_uses_vml
+    else:
+        for node in ast.postorderWalk():
+            if node.astType == 'op' \
+                   and node.value in ['sin', 'cos', 'exp', 'log',
+                                      'expm1', 'log1p',
+                                      'pow', 'div',
+                                      'sqrt', 'inv',
+                                      'sinh', 'cosh', 'tanh',
+                                      'arcsin', 'arccos', 'arctan',
+                                      'arccosh', 'arcsinh', 'arctanh', 'arctan2']:
+                ex_uses_vml = True
+                break
+        else:
+            ex_uses_vml = False
+
+    return [a.value for a in input_order], ex_uses_vml
 
 
 _names_cache = {}
@@ -612,7 +612,7 @@ def evaluate(ex, local_dict=None, global_dict=None, **kwargs):
                 del _names_cache[key]
         context = getContext(kwargs)
         _names_cache[expr_key] = getExprNames(ex, context)
-    names = _names_cache[expr_key]
+    names, ex_uses_vml = _names_cache[expr_key]
     # Get the arguments based on the names.
     call_frame = sys._getframe(1)
     if local_dict is None:
@@ -621,11 +621,6 @@ def evaluate(ex, local_dict=None, global_dict=None, **kwargs):
         global_dict = call_frame.f_globals
     arguments = []
     copy_args = []
-
-    #check if expression uses vml functions
-    #TODO: this should better be done with compiled/optimized expression
-    #TODO: cache this result
-    ex_uses_vml = get_ex_uses_vml(ex, getContext(kwargs))
 
     for name in names:
         try:
