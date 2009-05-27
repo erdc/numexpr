@@ -6,6 +6,18 @@ import threading
 
 import numpy
 
+# Declare a double type that does not exist in Python space
+double = numpy.double
+
+# The default kind for undeclared variables
+default_kind = 'double'
+
+type_to_kind = {bool: 'bool', int: 'int', long: 'long', float: 'float',
+                double: 'double', complex: 'complex', str: 'str'}
+kind_to_type = {'bool': bool, 'int': int, 'long': long, 'float': float,
+                'double': double, 'complex': complex, 'str': str}
+kind_rank = ['bool', 'int', 'long', 'float', 'double', 'complex', 'none']
+
 from numexpr import interpreter
 
 class Expression(object):
@@ -16,7 +28,7 @@ class Expression(object):
         if name.startswith('_'):
             return self.__dict__[name]
         else:
-            return VariableNode(name, 'float')
+            return VariableNode(name, default_kind)
 
 E = Expression()
 
@@ -64,11 +76,7 @@ def allConstantNodes(args):
 
 def isConstant(ex):
     "Returns True if ex is a constant scalar of an allowed type."
-    return isinstance(ex, (bool, int, long, float, complex, str))
-
-type_to_kind = {bool: 'bool', int: 'int', long: 'long', float: 'float', complex: 'complex', str: 'str'}
-kind_to_type = {'bool': bool, 'int': int, 'long': long, 'float': float, 'complex': complex, 'str': str}
-kind_rank = ['bool', 'int', 'long', 'float', 'complex', 'none']
+    return isinstance(ex, (bool, int, long, float, double, complex, str))
 
 def commonKind(nodes):
     node_kinds = [node.astKind for node in nodes]
@@ -92,6 +100,11 @@ def bestConstantType(x):
     # a 32-bit array with a long (64-bit) constant.
     if isinstance(x, (long, numpy.int64)):
         return long
+    # ``double`` objects are kept as is to allow the user to force
+    # promotion of results by using double constants, e.g. by operating
+    # a float (32-bit) array with a double (64-bit) constant.
+    if isinstance(x, (double)):
+        return double
     # Numeric conversion to boolean values is not tried because
     # ``bool(1) == True`` (same for 0 and False), so 0 and 1 would be
     # interpreted as booleans when ``False`` and ``True`` are already
@@ -100,6 +113,8 @@ def bestConstantType(x):
         return bool
     # ``long`` is not explicitly needed since ``int`` automatically
     # returns longs when needed (since Python 2.3).
+    # The duality of float and double in Python avoids that we have to list
+    # ``double`` too.
     for converter in int, float, complex:
         try:
             y = converter(x)
@@ -168,13 +183,13 @@ def sum_func(a, axis=-1):
     axis = encode_axis(axis)
     if isinstance(a, ConstantNode):
         return a
-    if isinstance(a, (bool, int, long, float, complex)):
+    if isinstance(a, (bool, int, long, float, double, complex)):
         a = ConstantNode(a)
     return FuncNode('sum', [a, axis], kind=a.astKind)
 
 def prod_func(a, axis=-1):
     axis = encode_axis(axis)
-    if isinstance(a, (bool, int, long, float, complex)):
+    if isinstance(a, (bool, int, long, float, double, complex)):
         a = ConstantNode(a)
     if isinstance(a, ConstantNode):
         return a
@@ -183,7 +198,9 @@ def prod_func(a, axis=-1):
 @ophelper
 def div_op(a, b):
     if get_optimization() in ('moderate', 'aggressive'):
-        if isinstance(b, ConstantNode) and (a.astKind == b.astKind) and a.astKind in ('float', 'complex'):
+        if (isinstance(b, ConstantNode) and
+            (a.astKind == b.astKind) and
+            a.astKind in ('float', 'double', 'complex')):
             return OpNode('mul', [a, ConstantNode(1./b.value)])
     return OpNode('div', [a,b])
 
@@ -215,7 +232,7 @@ def pow_op(a, b):
                     p = OpNode('mul', [p,p])
                 if ishalfpower:
                     kind = commonKind([a])
-                    if kind in ('int', 'long'): kind = 'float'
+                    if kind in ('int', 'long'): kind = 'double'
                     r = multiply(r, OpNode('sqrt', [a], kind))
                 if r is None:
                     r = OpNode('ones_like', [a])
@@ -229,7 +246,7 @@ def pow_op(a, b):
                 return FuncNode('ones_like', [a])
             if x == 0.5:
                 kind = a.astKind
-                if kind in ('int', 'long'): kind = 'float'
+                if kind in ('int', 'long'): kind = 'double'
                 return FuncNode('sqrt', [a], kind=kind)
             if x == 1:
                 return a
@@ -240,35 +257,35 @@ def pow_op(a, b):
 functions = {
     'copy' : func(numpy.copy),
     'ones_like' : func(numpy.ones_like),
-    'sqrt' : func(numpy.sqrt, 'float'),
+    'sqrt' : func(numpy.sqrt, 'double'),
 
-    'sin' : func(numpy.sin, 'float'),
-    'cos' : func(numpy.cos, 'float'),
-    'tan' : func(numpy.tan, 'float'),
-    'arcsin' : func(numpy.arcsin, 'float'),
-    'arccos' : func(numpy.arccos, 'float'),
-    'arctan' : func(numpy.arctan, 'float'),
+    'sin' : func(numpy.sin, 'double'),
+    'cos' : func(numpy.cos, 'double'),
+    'tan' : func(numpy.tan, 'double'),
+    'arcsin' : func(numpy.arcsin, 'double'),
+    'arccos' : func(numpy.arccos, 'double'),
+    'arctan' : func(numpy.arctan, 'double'),
 
-    'sinh' : func(numpy.sinh, 'float'),
-    'cosh' : func(numpy.cosh, 'float'),
-    'tanh' : func(numpy.tanh, 'float'),
-    'arcsinh' : func(numpy.arcsinh, 'float'),
-    'arccosh' : func(numpy.arccosh, 'float'),
-    'arctanh' : func(numpy.arctanh, 'float'),
+    'sinh' : func(numpy.sinh, 'double'),
+    'cosh' : func(numpy.cosh, 'double'),
+    'tanh' : func(numpy.tanh, 'double'),
+    'arcsinh' : func(numpy.arcsinh, 'double'),
+    'arccosh' : func(numpy.arccosh, 'double'),
+    'arctanh' : func(numpy.arctanh, 'double'),
 
-    'fmod' : func(numpy.fmod, 'float'),
-    'arctan2' : func(numpy.arctan2, 'float'),
+    'fmod' : func(numpy.fmod, 'double'),
+    'arctan2' : func(numpy.arctan2, 'double'),
 
-    'log' : func(numpy.log, 'float'),
-    'log1p' : func(numpy.log1p, 'float'),
-    'log10' : func(numpy.log10, 'float'),
-    'exp' : func(numpy.exp, 'float'),
-    'expm1' : func(numpy.expm1, 'float'),
+    'log' : func(numpy.log, 'double'),
+    'log1p' : func(numpy.log1p, 'double'),
+    'log10' : func(numpy.log10, 'double'),
+    'exp' : func(numpy.exp, 'double'),
+    'expm1' : func(numpy.expm1, 'double'),
 
     'where' : where_func,
 
-    'real' : func(numpy.real, 'float', 'float'),
-    'imag' : func(numpy.imag, 'float', 'float'),
+    'real' : func(numpy.real, 'double', 'double'),
+    'imag' : func(numpy.imag, 'double', 'double'),
     'complex' : func(complex, 'complex'),
 
     'sum' : sum_func,
@@ -298,13 +315,13 @@ class ExpressionNode(object):
     def get_real(self):
         if self.astType == 'constant':
             return ConstantNode(complex(self.value).real)
-        return OpNode('real', (self,), 'float')
+        return OpNode('real', (self,), 'double')
     real = property(get_real)
 
     def get_imag(self):
         if self.astType == 'constant':
             return ConstantNode(complex(self.value).imag)
-        return OpNode('imag', (self,), 'float')
+        return OpNode('imag', (self,), 'double')
     imag = property(get_imag)
 
     def __str__(self):
@@ -373,6 +390,9 @@ class ConstantNode(LeafNode):
     astType = 'constant'
     def __init__(self, value=None, children=None):
         kind = getKind(value)
+        # Python float constants are double precision by default
+        if kind == 'float':
+            kind = 'double'
         LeafNode.__init__(self, value=value, kind=kind)
     def __neg__(self):
         return ConstantNode(-self.value)

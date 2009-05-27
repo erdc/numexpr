@@ -16,13 +16,16 @@ from numexpr import E, NumExpr, evaluate, disassemble, use_vml
 import unittest
 TestCase = unittest.TestCase
 
+double = numpy.double
+
 # Recommended minimum versions
 minimum_numpy_version = "1.2"
 
 class test_numexpr(TestCase):
     def test_simple(self):
         ex = 2.0 * E.a + 3.0 * E.b * E.c
-        func = NumExpr(ex, signature=[('a', float), ('b', float), ('c', float)])
+        sig = [('a', double), ('b', double), ('c', double)]
+        func = NumExpr(ex, signature=sig)
         x = func(array([1., 2, 3]), array([4., 5, 6]), array([7., 8, 9]))
         assert_array_equal(x, array([  86.,  124.,  168.]))
 
@@ -49,20 +52,20 @@ class test_numexpr(TestCase):
     def test_reductions(self):
         # Check that they compile OK.
         assert_equal(disassemble(
-            NumExpr("sum(x**2+2, axis=None)", [('x', float)])),
-                     [('mul_fff', 't3', 'r1[x]', 'r1[x]'),
-                      ('add_fff', 't3', 't3', 'c2[2.0]'),
-                      ('sum_ffn', 'r0', 't3', None)])
+            NumExpr("sum(x**2+2, axis=None)", [('x', double)])),
+                     [('mul_ddd', 't3', 'r1[x]', 'r1[x]'),
+                      ('add_ddd', 't3', 't3', 'c2[2.0]'),
+                      ('sum_ddn', 'r0', 't3', None)])
         assert_equal(disassemble(
-            NumExpr("sum(x**2+2, axis=1)", [('x', float)])),
-                     [('mul_fff', 't3', 'r1[x]', 'r1[x]'),
-                      ('add_fff', 't3', 't3', 'c2[2.0]'),
-                      ('sum_ffn', 'r0', 't3', 1)])
+            NumExpr("sum(x**2+2, axis=1)", [('x', double)])),
+                     [('mul_ddd', 't3', 'r1[x]', 'r1[x]'),
+                      ('add_ddd', 't3', 't3', 'c2[2.0]'),
+                      ('sum_ddn', 'r0', 't3', 1)])
         assert_equal(disassemble(
-            NumExpr("prod(x**2+2, axis=2)", [('x', float)])),
-                     [('mul_fff', 't3', 'r1[x]', 'r1[x]'),
-                      ('add_fff', 't3', 't3', 'c2[2.0]'),
-                      ('prod_ffn', 'r0', 't3', 2)])
+            NumExpr("prod(x**2+2, axis=2)", [('x', double)])),
+                     [('mul_ddd', 't3', 'r1[x]', 'r1[x]'),
+                      ('add_ddd', 't3', 't3', 'c2[2.0]'),
+                      ('prod_ddn', 'r0', 't3', 2)])
         # Check that full reductions work.
         x = arange(10.0)
         assert_equal(evaluate("sum(x**2+2,axis=0)"), sum(x**2+2,axis=0))
@@ -107,9 +110,9 @@ class test_numexpr(TestCase):
 
 
     def test_r0_reuse(self):
-        assert_equal(disassemble(NumExpr("x**2+2", [('x', float)])),
-                    [('mul_fff', 'r0', 'r1[x]', 'r1[x]'),
-                     ('add_fff', 'r0', 'r0', 'c2[2.0]')])
+        assert_equal(disassemble(NumExpr("x**2+2", [('x', double)])),
+                    [('mul_ddd', 'r0', 'r1[x]', 'r1[x]'),
+                     ('add_ddd', 'r0', 'r0', 'c2[2.0]')])
 
 class test_evaluate(TestCase):
     def test_simple(self):
@@ -170,20 +173,20 @@ class test_evaluate(TestCase):
         d = arange(5).reshape(5,1)
         assert_array_equal(evaluate("a+c"), a+c)
         assert_array_equal(evaluate("a+d"), a+d)
-        expr = NumExpr("2.0*a+3.0*c",[('a',float),('c', float)])
+        expr = NumExpr("2.0*a+3.0*c",[('a', double),('c', double)])
         assert_array_equal(expr(a,c), 2.0*a+3.0*c)
 
     def test_all_scalar(self):
         a = 3.
         b = 4.
         assert_equal(evaluate("a+b"), a+b)
-        expr = NumExpr("2*a+3*b",[('a',float),('b', float)])
+        expr = NumExpr("2*a+3*b",[('a', double),('b', double)])
         assert_equal(expr(a,b), 2*a+3*b)
 
     def test_run(self):
         a = arange(100).reshape(10,10)[::2]
         b = arange(10)
-        expr = NumExpr("2*a+3*b",[('a',float),('b', float)])
+        expr = NumExpr("2*a+3*b",[('a', double),('b', double)])
         assert_array_equal(expr(a,b), expr.run(a,b))
 
     def test_illegal_value(self):
@@ -298,7 +301,7 @@ def generate_test_expressions():
                 new.instancemethod(method, None, test_expressions))
     x = None
     for test_scalar in [0,1,2]:
-        for dtype in [int, long, float, complex]:
+        for dtype in [int, long, double, complex]:
             array_size = 100
             a = arange(2*array_size, dtype=dtype)[::2]
             a2 = zeros([array_size, array_size], dtype=dtype)
