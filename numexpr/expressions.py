@@ -152,10 +152,15 @@ def func(func, minkind=None, maxkind=None):
         if allConstantNodes(args):
             return ConstantNode(func(*[x.value for x in args]))
         kind = commonKind(args)
-        if minkind and kind_rank.index(minkind) > kind_rank.index(kind):
-            kind = minkind
-        if maxkind and kind_rank.index(maxkind) < kind_rank.index(kind):
-            kind = maxkind
+        if kind in ('int', 'long'):
+            # Exception for following NumPy casting rules
+            kind = 'double'
+        else:
+            # Apply regular casting rules
+            if minkind and kind_rank.index(minkind) > kind_rank.index(kind):
+                kind = minkind
+            if maxkind and kind_rank.index(maxkind) < kind_rank.index(kind):
+                kind = maxkind
         return FuncNode(func.__name__, args, kind)
     return function
 
