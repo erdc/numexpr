@@ -498,24 +498,24 @@ FuncFFPtr functions_ff[] = {
 #ifdef USE_VML
 typedef void (*FuncFFPtr_vml)(int, const float*, float*);
 FuncFFPtr_vml functions_ff_vml[] = {
-    vfSqrt,
-    vfSin,
-    vfCos,
-    vfTan,
-    vfAsin,
-    vfAcos,
-    vfAtan,
-    vfSinh,
-    vfCosh,
-    vfTanh,
-    vfAsinh,
-    vfAcosh,
-    vfAtanh,
-    vfLn,
-    vfLog1p,
-    vfLog10,
-    vfExp,
-    vfExpm1,
+    vsSqrt,
+    vsSin,
+    vsCos,
+    vsTan,
+    vsAsin,
+    vsAcos,
+    vsAtan,
+    vsSinh,
+    vsCosh,
+    vsTanh,
+    vsAsinh,
+    vsAcosh,
+    vsAtanh,
+    vsLn,
+    vsLog1p,
+    vsLog10,
+    vsExp,
+    vsExpm1,
 };
 #endif
 
@@ -535,7 +535,7 @@ FuncFFFPtr functions_fff[] = {
 
 #ifdef USE_VML
 /* fmod not available in VML */
-static void vffmod(int n, const float* x1, const float* x2, float* dest)
+static void vsfmod(int n, const float* x1, const float* x2, float* dest)
 {
     int j;
     for(j=0; j < n; j++) {
@@ -545,8 +545,8 @@ static void vffmod(int n, const float* x1, const float* x2, float* dest)
 
 typedef void (*FuncFFFPtr_vml)(int, const float*, const float*, float*);
 FuncFFFPtr_vml functions_fff_vml[] = {
-    vffmod,
-    vfAtan2,
+    vsfmod,
+    vsAtan2,
 };
 #endif
 
@@ -648,7 +648,7 @@ static void vdfmod(int n, const double* x1, const double* x2, double* dest)
 };
 
 typedef void (*FuncDDDPtr_vml)(int, const double*, const double*, double*);
-FuncFFFPtr_vml functions_ddd_vml[] = {
+FuncDDDPtr_vml functions_ddd_vml[] = {
     vdfmod,
     vdAtan2,
 };

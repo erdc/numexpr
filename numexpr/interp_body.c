@@ -261,14 +261,14 @@
         case OP_MUL_FFF: VEC_ARG2(f_dest = f1 * f2);
         case OP_DIV_FFF:
 #ifdef USE_VML
-	    VEC_ARG2_VML(vfDiv(VECTOR_SIZE,
+	    VEC_ARG2_VML(vsDiv(VECTOR_SIZE,
                                (float*)x1, (float*)x2, (float*)dest));
 #else
 	    VEC_ARG2(f_dest = f1 / f2);
 #endif
         case OP_POW_FFF:
 #ifdef USE_VML
-	    VEC_ARG2_VML(vfPow(VECTOR_SIZE,
+	    VEC_ARG2_VML(vsPow(VECTOR_SIZE,
                                (float*)x1, (float*)x2, (float*)dest));
 #else
 	    VEC_ARG2(f_dest = powf(f1, f2));
@@ -277,7 +277,7 @@
 
         case OP_SQRT_FF:
 #ifdef USE_VML
-	    VEC_ARG1_VML(vfSqrt(VECTOR_SIZE, (float*)x1, (float*)dest));
+	    VEC_ARG1_VML(vsSqrt(VECTOR_SIZE, (float*)x1, (float*)dest));
 #else
 	    VEC_ARG1(f_dest = sqrtf(f1));
 #endif
