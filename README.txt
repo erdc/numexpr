@@ -210,9 +210,10 @@ Authors
 
 Numexpr was initially written by David Cooke, and extended to more
 types by Tim Hochberg.  Francesc Alted contributed support for
-booleans and for efficient strided and unaligned array operations.
-Ivan Vilata contributed support for strings.  Gregor Thalhammer
-implemented the support for Intel VML (Vector Math Library).
+booleans and simple-precision floating point types and for efficient
+strided and unaligned array operations.  Ivan Vilata contributed
+support for strings.  Gregor Thalhammer implemented the support for
+Intel VML (Vector Math Library).
 
 
 License
