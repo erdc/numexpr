@@ -90,7 +90,7 @@ def expressionToAST(ex):
     like a number.
     """
     this_ast = ASTNode(ex.astType, ex.astKind, ex.value,
-                           [expressionToAST(c) for c in ex.children])
+                       [expressionToAST(c) for c in ex.children])
     return this_ast
 
 
@@ -445,7 +445,7 @@ def precompile(ex, signature=(), copy_args=(), **kwargs):
     """Compile the expression to an intermediate form.
     """
     types = dict(signature)
-    input_order = [name for (name, type) in signature]
+    input_order = [name for (name, type_) in signature]
     context = getContext(kwargs)
 
     if isinstance(ex, str):
@@ -499,10 +499,8 @@ def precompile(ex, signature=(), copy_args=(), **kwargs):
 
     threeAddrProgram = convertASTtoThreeAddrForm(ast)
     input_names = tuple([a.value for a in input_order])
-    #print "signature(abans)-->", signature
     signature = ''.join(type_to_typecode[types.get(x, default_type)]
                         for x in input_names)
-    #print "signature(despres)-->", signature
     return threeAddrProgram, signature, tempsig, constants, input_names
 
 

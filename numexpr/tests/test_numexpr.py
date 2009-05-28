@@ -254,7 +254,7 @@ for n in (-2.5, -1.5, -1.3, -.5, 0, 0.5, 1, 0.5, 1, 2.3, 2.5):
 tests.append(('POW TESTS', powtests))
 
 def equal(a, b, exact):
-    if hasattr(a, 'dtype') and a.dtype == 'f8':
+    if hasattr(a, 'dtype') and a.dtype in ['f4','f8']:
         nnans = isnan(a).sum()
         if isnan(a).sum() > 0:
             # For results containing NaNs, just check that the number
@@ -265,7 +265,12 @@ def equal(a, b, exact):
     if exact:
         return (shape(a) == shape(b)) and alltrue(ravel(a) == ravel(b), axis=0)
     else:
-        return (shape(a) == shape(b) and allclose(ravel(a), ravel(b)))
+        if hasattr(a, 'dtype') and a.dtype == 'f4':
+            atol = 1e-5   # Relax precission for special opcodes, like fmod
+        else:
+            atol = 1e-8
+        return (shape(a) == shape(b) and
+                allclose(ravel(a), ravel(b), atol=atol))
 
 class Skip(Exception): pass
 
@@ -282,10 +287,9 @@ def generate_test_expressions():
             try:
                 neval = evaluate(expr, local_dict=this_locals,
                                  optimization=optimization)
-                assert equal(npval, neval, exact), \
-                    """%r
+                assert equal(npval, neval, exact), """%r
 (test_scalar=%r, dtype=%r, optimization=%r, exact=%r,
- npval=%r (%r), neval=%r (%r))""" % (expr, test_scalar, dtype.__name__,
+ npval=%r (%r)\n neval=%r (%r))""" % (expr, test_scalar, dtype.__name__,
                                      optimization, exact,
                                      npval, type(npval), neval, type(neval))
             except AssertionError:
@@ -301,7 +305,7 @@ def generate_test_expressions():
                 new.instancemethod(method, None, test_expressions))
     x = None
     for test_scalar in [0,1,2]:
-        for dtype in [int, long, double, complex]:
+        for dtype in [int, long, numpy.float32, double, complex]:
             array_size = 100
             a = arange(2*array_size, dtype=dtype)[::2]
             a2 = zeros([array_size, array_size], dtype=dtype)

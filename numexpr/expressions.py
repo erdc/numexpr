@@ -254,33 +254,34 @@ def pow_op(a, b):
                 return OpNode('mul', [a,a])
     return OpNode('pow', [a,b])
 
+# The functions and the minimum and maximum types accepted
 functions = {
     'copy' : func(numpy.copy),
     'ones_like' : func(numpy.ones_like),
-    'sqrt' : func(numpy.sqrt, 'double'),
+    'sqrt' : func(numpy.sqrt, 'float'),
 
-    'sin' : func(numpy.sin, 'double'),
-    'cos' : func(numpy.cos, 'double'),
-    'tan' : func(numpy.tan, 'double'),
-    'arcsin' : func(numpy.arcsin, 'double'),
-    'arccos' : func(numpy.arccos, 'double'),
-    'arctan' : func(numpy.arctan, 'double'),
+    'sin' : func(numpy.sin, 'float'),
+    'cos' : func(numpy.cos, 'float'),
+    'tan' : func(numpy.tan, 'float'),
+    'arcsin' : func(numpy.arcsin, 'float'),
+    'arccos' : func(numpy.arccos, 'float'),
+    'arctan' : func(numpy.arctan, 'float'),
 
-    'sinh' : func(numpy.sinh, 'double'),
-    'cosh' : func(numpy.cosh, 'double'),
-    'tanh' : func(numpy.tanh, 'double'),
-    'arcsinh' : func(numpy.arcsinh, 'double'),
-    'arccosh' : func(numpy.arccosh, 'double'),
-    'arctanh' : func(numpy.arctanh, 'double'),
+    'sinh' : func(numpy.sinh, 'float'),
+    'cosh' : func(numpy.cosh, 'float'),
+    'tanh' : func(numpy.tanh, 'float'),
+    'arcsinh' : func(numpy.arcsinh, 'float'),
+    'arccosh' : func(numpy.arccosh, 'float'),
+    'arctanh' : func(numpy.arctanh, 'float'),
 
-    'fmod' : func(numpy.fmod, 'double'),
-    'arctan2' : func(numpy.arctan2, 'double'),
+    'fmod' : func(numpy.fmod, 'float'),
+    'arctan2' : func(numpy.arctan2, 'float'),
 
-    'log' : func(numpy.log, 'double'),
-    'log1p' : func(numpy.log1p, 'double'),
-    'log10' : func(numpy.log10, 'double'),
-    'exp' : func(numpy.exp, 'double'),
-    'expm1' : func(numpy.expm1, 'double'),
+    'log' : func(numpy.log, 'float'),
+    'log1p' : func(numpy.log1p, 'float'),
+    'log10' : func(numpy.log10, 'float'),
+    'exp' : func(numpy.exp, 'float'),
+    'expm1' : func(numpy.expm1, 'float'),
 
     'where' : where_func,
 

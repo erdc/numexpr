@@ -1,6 +1,7 @@
 #include "Python.h"
 #include "structmember.h"
 #include "numpy/noprefix.h"
+#include "numpy/arrayscalars.h"
 #include "math.h"
 #include "string.h"
 #include "assert.h"
@@ -1213,8 +1214,11 @@ NumExpr_init(NumExprObject *self, PyObject *args, PyObject *kwds)
                 lmem[j] = value;
             }
         } else if (c == 'f') {
+            /* In this particular case the constant is in a NumPy scalar
+             and in a regular Python object */
             float *fmem = (float*)mem[i+n_inputs+1];
-            float value = PyFloat_AS_DOUBLE(PyTuple_GET_ITEM(constants, i));
+            float value = PyArrayScalar_VAL(PyTuple_GET_ITEM(constants, i),
+                                            Float);
             for (j = 0; j < BLOCK_SIZE1; j++) {
                 fmem[j] = value;
             }
