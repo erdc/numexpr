@@ -20,6 +20,7 @@
 #ifdef _WIN32
 #define inline __inline
 #include "missing_posix_functions.inc"
+#include "msvc_function_stubs.inc"
 #endif
 
 #ifdef USE_VML
@@ -474,6 +475,28 @@ enum FuncFFCodes {
 typedef float (*FuncFFPtr)(float);
 
 /* The order of this array must match the FuncFFCodes enum above */
+#ifdef _WIN32
+FuncFFPtr functions_ff[] = {
+    sqrtf2,
+    sinf2,
+    cosf2,
+    tanf2,
+    asinf2,
+    acosf2,
+    atanf2,
+    sinhf2,
+    coshf2,
+    tanhf2,
+    asinhf2,
+    acoshf2,
+    atanhf2,
+    logf2,
+    log1pf2,
+    log10f2,
+    expf2,
+    expm1f2,
+};
+#else
 FuncFFPtr functions_ff[] = {
     sqrtf,
     sinf,
@@ -494,6 +517,7 @@ FuncFFPtr functions_ff[] = {
     expf,
     expm1f,
 };
+#endif  // #ifdef _WIN32
 
 #ifdef USE_VML
 typedef void (*FuncFFPtr_vml)(int, const float*, float*);
@@ -528,10 +552,17 @@ enum FuncFFFCodes {
 
 typedef float (*FuncFFFPtr)(float, float);
 
+#ifdef _WIN32
+FuncFFFPtr functions_fff[] = {
+    fmodf2,
+    atan2f2,
+};
+#else
 FuncFFFPtr functions_fff[] = {
     fmodf,
     atan2f,
 };
+#endif  // #ifdef _WIN32
 
 #ifdef USE_VML
 /* fmod not available in VML */
