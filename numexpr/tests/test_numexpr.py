@@ -8,7 +8,7 @@ from numpy import (
     sinh, cosh, tanh, arcsinh, arccosh, arctanh,
     log, log1p, log10, exp, expm1)
 from numpy.testing import *
-from numpy import shape, allclose, ravel, isnan
+from numpy import shape, allclose, ravel, isnan, isinf
 
 import numexpr
 from numexpr import E, NumExpr, evaluate, disassemble, use_vml
@@ -262,6 +262,10 @@ def equal(a, b, exact):
             # made more exhaustive, but checking element by element in
             # python space is very expensive in general.
             return nnans == isnan(b).sum()
+        ninfs = isinf(a).sum()
+        if isinf(a).sum() > 0:
+            # Ditto for Inf's
+            return ninfs == isinf(b).sum()
     if exact:
         return (shape(a) == shape(b)) and alltrue(ravel(a) == ravel(b), axis=0)
     else:
