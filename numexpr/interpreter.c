@@ -34,6 +34,7 @@
 /* Note: without VML available a smaller block size is best, specially
  * for the strided and unaligned cases.  However, this may change
  * when/if numexpr would support multithreading for the non-VML case. */
+//#define BLOCK_SIZE1 256
 #define BLOCK_SIZE1 256
 #define BLOCK_SIZE2 8
 #endif
@@ -939,10 +940,9 @@ static inline int
 vm_engine_1(int start, int blen, struct vm_params params, int *pc_error)
 {
     unsigned int index;
+    unsigned int vector_size = BLOCK_SIZE1;
     for (index = start; index < blen; index += BLOCK_SIZE1) {
-#define VECTOR_SIZE BLOCK_SIZE1
 #include "interp_body.c"
-#undef VECTOR_SIZE
     }
     return 0;
 }
@@ -951,10 +951,9 @@ static inline int
 vm_engine_2(int start, int blen, struct vm_params params, int *pc_error)
 {
     unsigned int index;
+    unsigned int vector_size = BLOCK_SIZE2;
     for (index = start; index < blen; index += BLOCK_SIZE2) {
-#define VECTOR_SIZE BLOCK_SIZE2
 #include "interp_body.c"
-#undef VECTOR_SIZE
     }
     return 0;
 }
@@ -964,9 +963,8 @@ vm_engine_rest(int start, int blen, struct vm_params params, int *pc_error)
 {
     unsigned int index = start;
     unsigned int rest = blen - start;
-#define VECTOR_SIZE rest
+    unsigned int vector_size = rest;
 #include "interp_body.c"
-#undef VECTOR_SIZE
     return 0;
 }
 
