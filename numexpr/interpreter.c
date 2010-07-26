@@ -951,8 +951,7 @@ static inline int
 vm_engine_rest(int start, int blen, struct vm_params params, int *pc_error)
 {
     unsigned int index = start;
-    unsigned int rest = blen - start;
-    unsigned int block_size = rest;
+    unsigned int block_size = blen - start;
 #include "interp_body.c"
     return 0;
 }
