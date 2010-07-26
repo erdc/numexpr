@@ -937,22 +937,11 @@ stringcmp(const char *s1, const char *s2, intp maxlen1, intp maxlen2)
 }
 
 static inline int
-vm_engine_1(int start, int blen, struct vm_params params, int *pc_error)
+vm_engine_block(int start, int blen, unsigned int block_size,
+                struct vm_params params, int *pc_error)
 {
     unsigned int index;
-    unsigned int vector_size = BLOCK_SIZE1;
-    for (index = start; index < blen; index += BLOCK_SIZE1) {
-#include "interp_body.c"
-    }
-    return 0;
-}
-
-static inline int
-vm_engine_2(int start, int blen, struct vm_params params, int *pc_error)
-{
-    unsigned int index;
-    unsigned int vector_size = BLOCK_SIZE2;
-    for (index = start; index < blen; index += BLOCK_SIZE2) {
+    for (index = start; index < blen; index += block_size) {
 #include "interp_body.c"
     }
     return 0;
@@ -963,7 +952,7 @@ vm_engine_rest(int start, int blen, struct vm_params params, int *pc_error)
 {
     unsigned int index = start;
     unsigned int rest = blen - start;
-    unsigned int vector_size = rest;
+    unsigned int block_size = rest;
 #include "interp_body.c"
     return 0;
 }
@@ -994,11 +983,11 @@ run_interpreter(NumExprObject *self, int len, char *output, char **inputs,
     params.memsizes = self->memsizes;
     params.r_end = PyString_Size(self->fullsig);
     blen1 = len - len % BLOCK_SIZE1;
-    r = vm_engine_1(0, blen1, params, pc_error);
+    r = vm_engine_block(0, blen1, BLOCK_SIZE1, params, pc_error);
     if (r < 0) return r;
     if (len != blen1) {
         blen2 = len - len % BLOCK_SIZE2;
-        r = vm_engine_2(blen1, blen2, params, pc_error);
+        r = vm_engine_block(blen1, blen2, BLOCK_SIZE2, params, pc_error);
         if (r < 0) return r;
         if (len != blen2) {
             r = vm_engine_rest(blen2, len, params, pc_error);
