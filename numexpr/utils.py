@@ -1,3 +1,5 @@
+from numexpr.interpreter import _set_num_threads
+
 from numexpr import use_vml
 
 if use_vml:
@@ -58,6 +60,17 @@ def set_vml_num_threads(nthreads):
     """
     if use_vml:
         _set_vml_num_threads(nthreads)
+
+
+def set_num_threads(nthreads):
+    """
+    Suggests a maximum number of threads to be used in operations.
+
+    This option allows to use several cores even though numexpr has
+    not been compiled with VML support.  In case you are using numexpr
+    with VML support, use `set_vml_num_threads()` better.
+    """
+    _set_num_threads(nthreads)
 
 
 class CacheDict(dict):

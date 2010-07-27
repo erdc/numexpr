@@ -96,7 +96,7 @@
     } break
 
 
-    unsigned int pc, j, k, r;
+    size_t pc, j, k, r;
     /* set up pointers to next block of inputs and outputs */
     params.mem[0] = params.output + index * params.memsteps[0];
     for (r = 0; r < params.n_inputs; r++) {

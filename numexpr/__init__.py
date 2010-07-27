@@ -29,8 +29,11 @@ from numexpr.expressions import E
 from numexpr.necompiler import NumExpr, disassemble, evaluate
 from numexpr.tests import test, print_versions
 from numexpr.utils import (
-    get_vml_version, set_vml_accuracy_mode, set_vml_num_threads)
+    get_vml_version, set_vml_accuracy_mode, set_vml_num_threads,
+    set_num_threads)
 
+# Initialize the number of threads to be used
+set_num_threads(2)   # XXX use an automatic detection of the number of cores
 
 import version
 
