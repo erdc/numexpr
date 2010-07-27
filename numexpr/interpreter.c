@@ -979,7 +979,7 @@ vm_engine_serial(size_t start, size_t vlen, size_t block_size,
 }
 
 /* Parallel version of VM engine */
-int
+static inline int
 vm_engine_parallel(size_t start, size_t vlen, size_t block_size,
                    struct vm_params params, int *pc_error)
 {
@@ -1090,30 +1090,31 @@ vm_engine_block(size_t start, size_t vlen, size_t block_size,
        block_size is small */
     int r;
     if (nthreads == 1 || block_size <= 8) {
-        r = vm_engine_serial(0, vlen, block_size, params, pc_error);
+        r = vm_engine_serial(start, vlen, block_size, params, pc_error);
     }
     else {
-        r = vm_engine_parallel(0, vlen, block_size, params, pc_error);
+        r = vm_engine_parallel(start, vlen, block_size, params, pc_error);
     }
     return r;
 }
 
 static inline int
-vm_engine_rest(int start, int blen, struct vm_params params, int *pc_error)
+vm_engine_rest(size_t start, size_t blen,
+               struct vm_params params, int *pc_error)
 {
-    unsigned int index = start;
-    unsigned int block_size = blen - start;
+    size_t index = start;
+    size_t block_size = blen - start;
 #include "interp_body.c"
     return 0;
 }
 
 static int
-run_interpreter(NumExprObject *self, int len, char *output, char **inputs,
+run_interpreter(NumExprObject *self, size_t len, char *output, char **inputs,
                 struct index_data *index_data, int *pc_error)
 {
     int r;
     Py_ssize_t plen;
-    unsigned int blen1, blen2;
+    size_t blen1, blen2;
     struct vm_params params;
 
     *pc_error = -1;
@@ -1288,7 +1289,8 @@ NumExpr_run(NumExprObject *self, PyObject *args, PyObject *kwds)
     struct index_data *inddata = NULL;
     unsigned int n_inputs, n_dimensions = 0;
     intp shape[MAX_DIMS];
-    int i, j, size, r, pc_error;
+    int i, j, r, pc_error;
+    size_t size;
     char **inputs = NULL;
     intp strides[MAX_DIMS]; /* clean up XXX */
 
