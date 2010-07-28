@@ -1,6 +1,6 @@
 {
 #define VEC_LOOP(expr) for(j = 0; j < block_size; j++) {       \
-        expr;                                       \
+        expr;                                   \
     }
 #define VEC_ARG1(expr)                          \
     BOUNDS_CHECK(store_in);                     \
@@ -78,7 +78,7 @@
     {                                           \
         char *dest = params.mem[store_in] + index * params.memsteps[store_in]; \
         char *x1 = params.mem[arg1] + index * params.memsteps[arg1];           \
-        char *x2 = params.mem[arg2] + index * params.memsteps[arg3];           \
+        char *x2 = params.mem[arg2] + index * params.memsteps[arg2];           \
         expr;                                   \
     } break
 
