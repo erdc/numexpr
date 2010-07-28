@@ -37,14 +37,14 @@ class test_numexpr(TestCase):
 
     def test_simple_expr(self):
         func = NumExpr(E.a)
-        x = arange(1e5)
+        x = arange(1e6)
         y = func(x)
         assert_array_equal(x, y)
 
     def test_rational_expr(self):
         func = NumExpr((E.a + 2.0*E.b) / (1 + E.a + 4*E.b*E.b))
-        a = arange(1e5)
-        b = arange(1e5) * 0.1
+        a = arange(1e6)
+        b = arange(1e6) * 0.1
         x = (a + 2*b) / (1 + a + 4*b*b)
         y = func(a, b)
         assert_array_almost_equal(x, y)
@@ -128,13 +128,13 @@ class test_evaluate(TestCase):
         assert_array_equal(x, y)
 
     def test_simple_expr(self):
-        x = arange(1e5)
+        x = arange(1e6)
         y = evaluate("x")
         assert_array_equal(x, y)
 
     def test_rational_expr(self):
-        a = arange(1e5)
-        b = arange(1e5) * 0.1
+        a = arange(1e6)
+        b = arange(1e6) * 0.1
         x = (a + 2*b) / (1 + a + 4*b*b)
         y = evaluate("(a + 2*b) / (1 + a + 4*b*b)")
         assert_array_almost_equal(x, y)

@@ -337,6 +337,7 @@ typedef struct
     intp *memsteps;
     intp *memsizes;
     int  rawmemsize;
+    int  structmemsize;
 } NumExprObject;
 
 static void
@@ -381,6 +382,7 @@ NumExpr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
         self->memsteps = NULL;
         self->memsizes = NULL;
         self->rawmemsize = 0;
+        self->structmemsize = 0;
 #undef INIT_WITH
     }
     return (PyObject *)self;
@@ -609,6 +611,7 @@ NumExpr_init(NumExprObject *self, PyObject *args, PyObject *kwds)
     intp *memsteps;
     intp *memsizes;
     int rawmemsize;
+    int structmemsize;
     static char *kwlist[] = {"signature", "tempsig",
                              "program",  "constants",
                              "input_names", NULL};
@@ -723,7 +726,8 @@ NumExpr_init(NumExprObject *self, PyObject *args, PyObject *kwds)
     rawmemsize += size_from_sig(tempsig);  /* no string temporaries */
     rawmemsize *= BLOCK_SIZE1;
 
-    mem = PyMem_New(char *, 1 + n_inputs + n_constants + n_temps);
+    structmemsize = 1 + n_inputs + n_constants + n_temps;
+    mem = PyMem_New(char *, structmemsize);
     rawmem = PyMem_New(char, rawmemsize);
     memsteps = PyMem_New(intp, 1 + n_inputs + n_constants + n_temps);
     memsizes = PyMem_New(intp, 1 + n_inputs + n_constants + n_temps);
@@ -855,6 +859,7 @@ NumExpr_init(NumExprObject *self, PyObject *args, PyObject *kwds)
     REPLACE_MEM(memsteps);
     REPLACE_MEM(memsizes);
     self->rawmemsize = rawmemsize;
+    self->structmemsize = structmemsize;
 
     #undef REPLACE_OBJ
     #undef INCREF_REPLACE_OBJ
@@ -892,6 +897,7 @@ struct vm_params {
     unsigned char *program;
     unsigned int n_inputs;
     unsigned int r_end;
+    unsigned int structmemsize;
     char *output;
     char **inputs;
     char **mem;
@@ -1129,6 +1135,7 @@ run_interpreter(NumExprObject *self, intp len, char *output, char **inputs,
     params.output = output;
     params.inputs = inputs;
     params.index_data = index_data;
+    params.structmemsize = self->structmemsize;
     params.mem = self->mem;
     params.memsteps = self->memsteps;
     params.memsizes = self->memsizes;
