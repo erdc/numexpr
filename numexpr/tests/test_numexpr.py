@@ -1,4 +1,5 @@
 import new, sys, os
+
 import numpy
 from numpy import (
     array, arange, empty, zeros, int32, int64, uint16, complex_, float64, rec,
@@ -548,6 +549,7 @@ def print_versions():
     print "VML available?     %s" % use_vml
     if use_vml:
         print "VML/MKL version:   %s" % numexpr.get_vml_version()
+    print 'Detected cores:    %s' % numexpr.ncores
     print '-=' * 38
 
 

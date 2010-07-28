@@ -1,5 +1,6 @@
-from numexpr.interpreter import _set_num_threads
+import os
 
+from numexpr.interpreter import _set_num_threads
 from numexpr import use_vml
 
 if use_vml:
@@ -71,6 +72,27 @@ def set_num_threads(nthreads):
     with VML support, use `set_vml_num_threads()` better.
     """
     _set_num_threads(nthreads)
+
+
+def detect_number_of_cores():
+    """
+    Detects the number of cores on a system. Cribbed from pp.
+    """
+    # Linux, Unix and MacOS:
+    if hasattr(os, "sysconf"):
+        if os.sysconf_names.has_key("SC_NPROCESSORS_ONLN"):
+            # Linux & Unix:
+            ncpus = os.sysconf("SC_NPROCESSORS_ONLN")
+            if isinstance(ncpus, int) and ncpus > 0:
+                return ncpus
+        else: # OSX:
+            return int(os.popen2("sysctl -n hw.ncpu")[1].read())
+    # Windows:
+    if os.environ.has_key("NUMBER_OF_PROCESSORS"):
+        ncpus = int(os.environ["NUMBER_OF_PROCESSORS"]);
+        if ncpus > 0:
+            return ncpus
+    return 1 # Default
 
 
 class CacheDict(dict):
