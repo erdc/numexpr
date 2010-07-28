@@ -1066,6 +1066,11 @@ void *th_worker(void *tids)
         }
         pthread_mutex_unlock(&count_threads_mutex);
 
+        /* Check if thread has been asked to return */
+        if (end_threads) {
+            return(0);
+        }
+
         /* Get parameters for this thread before entering the main loop */
         start = th_params.start;
         vlen = th_params.vlen;
