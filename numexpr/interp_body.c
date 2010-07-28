@@ -97,12 +97,16 @@
 
 
     unsigned int pc, j, k, r;
+    int n_inputs = params.n_inputs;
+    int n_constants = params.n_constants;
+    int n_temps = params.n_temps;
     char **mem;
+
     /* set up pointers to next block of inputs and outputs */
     /* Do a private copy of mem pointer structure because its info
      depens on the thread */
-    mem = malloc(params.structmemsize * sizeof(char *));
-    memcpy(mem, params.mem, params.structmemsize * sizeof(char *));
+    mem = malloc((1+n_inputs+n_constants+n_temps) * sizeof(char *));
+    memcpy(mem, params.mem, (1+n_inputs+n_constants) * sizeof(char *));
     mem[0] = params.output + index * params.memsteps[0];
     for (r = 0; r < params.n_inputs; r++) {
         struct index_data id = params.index_data[r+1];
@@ -126,6 +130,10 @@
         } else {
             mem[1+r] = params.inputs[r] + index * params.memsteps[1+r];
         }
+    }
+    /* Get the proper places for temporaries (depend on thread ID) */
+    for (r = 1+n_inputs+n_constants; r < 1+n_inputs+n_constants+n_temps; r++) {
+        mem[r] = params.mem[r] + block_size * params.memsizes[r] * tid;
     }
 
     /* WARNING: From now on, only do references to mem[arg[123]]
@@ -488,3 +496,9 @@
 #undef c3i
 #undef s3
 }
+
+/*
+Local Variables:
+   c-basic-offset: 4
+End:
+*/

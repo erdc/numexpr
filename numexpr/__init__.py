@@ -33,7 +33,7 @@ from numexpr.utils import (
     set_num_threads)
 
 # Initialize the number of threads to be used
-set_num_threads(2)   # XXX use an automatic detection of the number of cores
+set_num_threads(1)   # XXX use an automatic detection of the number of cores
 
 import version
 

@@ -337,7 +337,9 @@ typedef struct
     intp *memsteps;
     intp *memsizes;
     int  rawmemsize;
-    int  structmemsize;
+    int  n_inputs;
+    int  n_constants;
+    int  n_temps;
 } NumExprObject;
 
 static void
@@ -382,7 +384,9 @@ NumExpr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
         self->memsteps = NULL;
         self->memsizes = NULL;
         self->rawmemsize = 0;
-        self->structmemsize = 0;
+        self->n_inputs = 0;
+        self->n_constants = 0;
+        self->n_temps = 0;
 #undef INIT_WITH
     }
     return (PyObject *)self;
@@ -602,7 +606,7 @@ static int
 NumExpr_init(NumExprObject *self, PyObject *args, PyObject *kwds)
 {
     int i, j, mem_offset;
-    int n_constants, n_inputs, n_temps;
+    int n_inputs, n_constants, n_temps;
     PyObject *signature = NULL, *tempsig = NULL, *constsig = NULL;
     PyObject *fullsig = NULL, *program = NULL, *constants = NULL;
     PyObject *input_names = NULL, *o_constants = NULL;
@@ -611,7 +615,6 @@ NumExpr_init(NumExprObject *self, PyObject *args, PyObject *kwds)
     intp *memsteps;
     intp *memsizes;
     int rawmemsize;
-    int structmemsize;
     static char *kwlist[] = {"signature", "tempsig",
                              "program",  "constants",
                              "input_names", NULL};
@@ -723,11 +726,10 @@ NumExpr_init(NumExprObject *self, PyObject *args, PyObject *kwds)
     rawmemsize = 0;
     for (i = 0; i < n_constants; i++)
         rawmemsize += itemsizes[i];
-    rawmemsize += size_from_sig(tempsig);  /* no string temporaries */
+    rawmemsize += size_from_sig(tempsig) * nthreads; /* one temp per thread */
     rawmemsize *= BLOCK_SIZE1;
 
-    structmemsize = 1 + n_inputs + n_constants + n_temps;
-    mem = PyMem_New(char *, structmemsize);
+    mem = PyMem_New(char *, 1 + n_inputs + n_constants + n_temps);
     rawmem = PyMem_New(char, rawmemsize);
     memsteps = PyMem_New(intp, 1 + n_inputs + n_constants + n_temps);
     memsizes = PyMem_New(intp, 1 + n_inputs + n_constants + n_temps);
@@ -821,8 +823,10 @@ NumExpr_init(NumExprObject *self, PyObject *args, PyObject *kwds)
             break;
         }
         mem[i+n_inputs+n_constants+1] = rawmem + mem_offset;
-        mem_offset += BLOCK_SIZE1 * size;
-        memsteps[i+n_inputs+n_constants+1] = memsizes[i+n_inputs+n_constants+1] = size;
+        /* Each thread should have its own temporary space */
+        mem_offset += BLOCK_SIZE1 * size * nthreads;
+        memsteps[i+n_inputs+n_constants+1] = size;
+        memsizes[i+n_inputs+n_constants+1] = size;
     }
     /* See if any errors occured (e.g., in size_from_char) or if mem_offset is wrong */
     if (PyErr_Occurred() || mem_offset != rawmemsize) {
@@ -859,7 +863,9 @@ NumExpr_init(NumExprObject *self, PyObject *args, PyObject *kwds)
     REPLACE_MEM(memsteps);
     REPLACE_MEM(memsizes);
     self->rawmemsize = rawmemsize;
-    self->structmemsize = structmemsize;
+    self->n_inputs = n_inputs;
+    self->n_constants = n_constants;
+    self->n_temps = n_temps;
 
     #undef REPLACE_OBJ
     #undef INCREF_REPLACE_OBJ
@@ -895,9 +901,10 @@ struct index_data {
 struct vm_params {
     int prog_len;
     unsigned char *program;
-    unsigned int n_inputs;
+    int n_inputs;
+    int n_constants;
+    int n_temps;
     unsigned int r_end;
-    unsigned int structmemsize;
     char *output;
     char **inputs;
     char **mem;
@@ -978,6 +985,7 @@ vm_engine_serial(intp start, intp vlen, intp block_size,
                  struct vm_params params, int *pc_error)
 {
     intp index;
+    int tid = 0;
     for (index = start; index < vlen; index += block_size) {
 #include "interp_body.c"
     }
@@ -1023,7 +1031,7 @@ vm_engine_parallel(intp start, intp vlen, intp block_size,
 
 /* Serial version of VM engine for each thread */
 static inline int
-vm_engine_thread(intp index, intp block_size,
+vm_engine_thread(int tid, intp index, intp block_size,
                  struct vm_params params, int *pc_error)
 {
 #include "interp_body.c"
@@ -1066,7 +1074,7 @@ void *th_worker(void *tids)
         /* Loop over blocks */
         index = start + tid*block_size;
         while (index < vlen) {
-            ret = vm_engine_thread(index, block_size, params, pc_error);
+            ret = vm_engine_thread(tid, index, block_size, params, pc_error);
             index += nthreads*block_size;
         }
 
@@ -1110,6 +1118,7 @@ vm_engine_rest(intp start, intp blen,
 {
     intp index = start;
     intp block_size = blen - start;
+    int tid = 0;
 #include "interp_body.c"
     return 0;
 }
@@ -1129,13 +1138,12 @@ run_interpreter(NumExprObject *self, intp len, char *output, char **inputs,
         return -1;
     }
     params.prog_len = plen;
-    if ((params.n_inputs = PyObject_Length(self->signature)) == -1)
-        return -1;
-
     params.output = output;
     params.inputs = inputs;
     params.index_data = index_data;
-    params.structmemsize = self->structmemsize;
+    params.n_inputs = self->n_inputs;
+    params.n_constants = self->n_constants;
+    params.n_temps = self->n_temps;
     params.mem = self->mem;
     params.memsteps = self->memsteps;
     params.memsizes = self->memsizes;
