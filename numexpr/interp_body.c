@@ -100,13 +100,19 @@
     int n_inputs = params.n_inputs;
     int n_constants = params.n_constants;
     int n_temps = params.n_temps;
+    size_t memsize = (1+n_inputs+n_constants+n_temps) * sizeof(char *);
     char **mem;
 
     /* set up pointers to next block of inputs and outputs */
-    /* Do a private copy of mem pointer structure because its info
-     depens on the thread */
-    mem = malloc((1+n_inputs+n_constants+n_temps) * sizeof(char *));
-    memcpy(mem, params.mem, (1+n_inputs+n_constants) * sizeof(char *));
+    if (nthreads > 1) {
+        /* Do a private copy of mem pointer structure because its info
+           depens on the thread */
+        mem = malloc(memsize);
+        memcpy(mem, params.mem, memsize);
+    }
+    else {
+        mem = params.mem;
+    }
     mem[0] = params.output + index * params.memsteps[0];
     for (r = 0; r < params.n_inputs; r++) {
         struct index_data id = params.index_data[r+1];
@@ -131,9 +137,9 @@
             mem[1+r] = params.inputs[r] + index * params.memsteps[1+r];
         }
     }
-    /* Get the proper places for temporaries (depend on thread ID) */
+    /* Get the proper places for temporaries (they depend on thread ID) */
     for (r = 1+n_inputs+n_constants; r < 1+n_inputs+n_constants+n_temps; r++) {
-        mem[r] = params.mem[r] + block_size * params.memsizes[r] * tid;
+        mem[r] += block_size * params.memsizes[r] * tid;
     }
 
     /* WARNING: From now on, only do references to mem[arg[123]]
@@ -450,7 +456,9 @@
     }
 
     /* Release resources */
-    free(mem);
+    if (nthreads > 1) {
+        free(mem);
+    }
 
 #undef VEC_LOOP
 #undef VEC_ARG1
