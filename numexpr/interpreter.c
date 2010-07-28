@@ -919,6 +919,7 @@ struct thread_data {
     intp vlen;
     intp block_size;
     struct vm_params params;
+    int ret_code;
     int *pc_error;
 } th_params;
 
@@ -1002,6 +1003,7 @@ vm_engine_parallel(intp start, intp vlen, intp block_size,
     th_params.vlen = vlen;
     th_params.block_size = block_size;
     th_params.params = params;
+    th_params.ret_code = 0;
     th_params.pc_error = pc_error;
 
     /* Synchronization point for all threads (wait for initialization) */
@@ -1026,7 +1028,7 @@ vm_engine_parallel(intp start, intp vlen, intp block_size,
     }
     pthread_mutex_unlock(&count_threads_mutex);
 
-    return 0;
+    return th_params.ret_code;
 }
 
 /* Serial version of VM engine for each thread */
@@ -1049,7 +1051,7 @@ void *th_worker(void *tids)
     intp block_size;
     struct vm_params params;
     int *pc_error;
-    int ret;
+    int ret = 0;
 
     while (1) {
 
@@ -1073,8 +1075,13 @@ void *th_worker(void *tids)
 
         /* Loop over blocks */
         index = start + tid*block_size;
-        while (index < vlen) {
+        while ((index < vlen) && (ret >= 0)) {
             ret = vm_engine_thread(tid, index, block_size, params, pc_error);
+            if (ret < 0) {
+                /* Propagate error to main thread */
+                th_params.ret_code = ret;
+                break;
+            }
             index += nthreads*block_size;
         }
 
