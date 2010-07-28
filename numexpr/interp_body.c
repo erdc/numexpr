@@ -6,8 +6,8 @@
     BOUNDS_CHECK(store_in);                     \
     BOUNDS_CHECK(arg1);                         \
     {                                           \
-        char *dest = params.mem[store_in];      \
-        char *x1 = params.mem[arg1];            \
+        char *dest = params.mem[store_in] + index * params.memsteps[store_in]; \
+        char *x1 = params.mem[arg1] + index * params.memsteps[arg1];           \
         intp ss1 = params.memsizes[arg1];       \
         intp sb1 = params.memsteps[arg1];       \
         /* nowarns is defined and used so as to \
@@ -22,15 +22,15 @@
     BOUNDS_CHECK(arg1);                         \
     BOUNDS_CHECK(arg2);                         \
     {                                           \
-        char *dest = params.mem[store_in];      \
-        char *x1 = params.mem[arg1];            \
+        char *dest = params.mem[store_in] + index * params.memsteps[store_in]; \
+        char *x1 = params.mem[arg1] + index * params.memsteps[arg1];           \
         intp ss1 = params.memsizes[arg1];       \
         intp sb1 = params.memsteps[arg1];       \
         /* nowarns is defined and used so as to \
         avoid compiler warnings about unused    \
         variables */                            \
         intp nowarns = ss1+sb1+*x1;             \
-        char *x2 = params.mem[arg2];            \
+        char *x2 = params.mem[arg2] + index * params.memsteps[arg2];           \
         intp ss2 = params.memsizes[arg2];       \
         intp sb2 = params.memsteps[arg2];       \
         nowarns += ss2+sb2+*x2;                 \
@@ -43,18 +43,18 @@
     BOUNDS_CHECK(arg2);                         \
     BOUNDS_CHECK(arg3);                         \
     {                                           \
-        char *dest = params.mem[store_in];      \
-        char *x1 = params.mem[arg1];            \
+        char *dest = params.mem[store_in] + index * params.memsteps[store_in]; \
+        char *x1 = params.mem[arg1] + index * params.memsteps[arg1];           \
         intp ss1 = params.memsizes[arg1];       \
         intp sb1 = params.memsteps[arg1];       \
         /* nowarns is defined and used so as to \
         avoid compiler warnings about unused    \
         variables */                            \
         intp nowarns = ss1+sb1+*x1;             \
-        char *x2 = params.mem[arg2];            \
+        char *x2 = params.mem[arg2] + index * params.memsteps[arg2];           \
         intp ss2 = params.memsizes[arg2];       \
         intp sb2 = params.memsteps[arg2];       \
-        char *x3 = params.mem[arg3];            \
+        char *x3 = params.mem[arg3] + index * params.memsteps[arg3];           \
         intp ss3 = params.memsizes[arg3];       \
         intp sb3 = params.memsteps[arg3];       \
         nowarns += ss2+sb2+*x2;                 \
@@ -66,8 +66,8 @@
     BOUNDS_CHECK(store_in);                     \
     BOUNDS_CHECK(arg1);                         \
     {                                           \
-        char *dest = params.mem[store_in];      \
-        char *x1 = params.mem[arg1];            \
+        char *dest = params.mem[store_in] + index * params.memsteps[store_in]; \
+        char *x1 = params.mem[arg1] + index * params.memsteps[arg1];           \
 	expr;                                   \
     } break
 
@@ -76,9 +76,9 @@
     BOUNDS_CHECK(arg1);                         \
     BOUNDS_CHECK(arg2);                         \
     {                                           \
-        char *dest = params.mem[store_in];      \
-        char *x1 = params.mem[arg1];            \
-        char *x2 = params.mem[arg2];            \
+        char *dest = params.mem[store_in] + index * params.memsteps[store_in]; \
+        char *x1 = params.mem[arg1] + index * params.memsteps[arg1];           \
+        char *x2 = params.mem[arg2] + index * params.memsteps[arg3];           \
         expr;                                   \
     } break
 
@@ -88,17 +88,17 @@
     BOUNDS_CHECK(arg2);                         \
     BOUNDS_CHECK(arg3);                         \
     {                                           \
-        char *dest = params.mem[store_in];      \
-        char *x1 = params.mem[arg1];            \
-        char *x2 = params.mem[arg2];            \
-        char *x3 = params.mem[arg3];            \
+        char *dest = params.mem[store_in] + index * params.memsteps[store_in]; \
+        char *x1 = params.mem[arg1] + index * params.memsteps[arg1];           \
+        char *x2 = params.mem[arg2] + index * params.memsteps[arg2];           \
+        char *x3 = params.mem[arg3] + index * params.memsteps[arg3];           \
         expr;                                   \
     } break
 
 
     unsigned int pc, j, k, r;
     /* set up pointers to next block of inputs and outputs */
-    params.mem[0] = params.output + index * params.memsteps[0];
+    params.mem[0] = params.output;
     for (r = 0; r < params.n_inputs; r++) {
         struct index_data id = params.index_data[r+1];
         if (id.count) {
@@ -107,7 +107,8 @@
                 unsigned int flatindex = 0;
                 for (k = 0; k < id.count; k ++)
                     flatindex += id.strides[k] * id.index[k];
-                memcpy(params.mem[1+r]+ (j*id.size), id.buffer + flatindex, id.size);
+                memcpy(params.mem[1+r]+ (j*id.size), id.buffer + flatindex,
+                       id.size);
                 k = id.count - 1;
                 id.index[k] += 1;
                 if (id.index[k] >= id.shape[k])
@@ -119,7 +120,7 @@
                     }
             }
         } else {
-            params.mem[1+r] = params.inputs[r] + index * params.memsteps[1+r];
+            params.mem[1+r] = params.inputs[r];
         }
     }
 
