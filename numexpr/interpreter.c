@@ -38,10 +38,12 @@
 #else
 /* The values below have been tuned for a nowadays Core2 processor */
 /* Note: without VML available a smaller block size is best, specially
- * for the strided and unaligned cases.  However, this may change
- * when/if numexpr would support multithreading for the non-VML case. */
-#define BLOCK_SIZE1 256
-#define BLOCK_SIZE2 8
+ * for the strided and unaligned cases.  Recent implementation of
+ * multithreading make it clear that larger block sizes benefit
+ * performance (although it seems like we don't need very large sizes
+ * like VML yet). */
+#define BLOCK_SIZE1 1024
+#define BLOCK_SIZE2 16
 #endif
 
 
