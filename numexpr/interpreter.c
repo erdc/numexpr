@@ -5,7 +5,12 @@
 #include "math.h"
 #include "string.h"
 #include "assert.h"
-#include <pthread.h>
+
+#if defined(_WIN32) && !defined(__MINGW32__)
+  #include "win32/pthreads.h"
+#else
+  #include <pthread.h>
+#endif
 
 #include "complex_functions.inc"
 
