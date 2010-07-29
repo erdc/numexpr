@@ -56,6 +56,8 @@ int init_threads_done = 0;       /* pool of threads initialized? */
 int end_threads = 0;             /* should exisiting threads end? */
 pthread_t threads[MAX_THREADS];  /* opaque structure for threads */
 int tids[MAX_THREADS];           /* ID per each thread */
+intp gindex;                     /* global index for all threads */
+int init_sentinels_done;         /* sentinels initialized? */
 
 /* Syncronization variables */
 pthread_mutex_t count_mutex;
@@ -150,7 +152,7 @@ FuncFFPtr functions_ff[] = {
 #include "functions.inc"
 #undef FUNC_FF
 };
-#endif  // #ifdef _WIN32
+#endif
 
 #ifdef USE_VML
 typedef void (*FuncFFPtr_vml)(int, const float*, float*);
@@ -181,7 +183,7 @@ FuncFFFPtr functions_fff[] = {
 #include "functions.inc"
 #undef FUNC_FFF
 };
-#endif  // #ifdef _WIN32
+#endif
 
 #ifdef USE_VML
 /* fmod not available in VML */
@@ -1081,7 +1083,6 @@ vm_engine_thread1(int tid, intp index,
 void *th_worker(void *tids)
 {
     int tid = *(int *)tids;
-    intp index;
     /* Parameters for threads */
     intp start;
     intp vlen;
@@ -1091,6 +1092,8 @@ void *th_worker(void *tids)
     int ret = 0;
 
     while (1) {
+
+        init_sentinels_done = 0;     /* sentinels have to be initialised yet */
 
         /* Meeting point for all threads (wait for initialization) */
         pthread_mutex_lock(&count_threads_mutex);
@@ -1116,20 +1119,30 @@ void *th_worker(void *tids)
         pc_error = th_params.pc_error;
 
         /* Loop over blocks */
-        index = start + tid*block_size;
-        while ((index < vlen) && (ret >= 0)) {
+        pthread_mutex_lock(&count_mutex);
+        if (!init_sentinels_done) {
+            /* Set sentinels and other global variables */
+            gindex = start;
+            init_sentinels_done = 1;    /* sentinels have been initialised */
+        } else {
+            gindex += block_size;
+        }
+        pthread_mutex_unlock(&count_mutex);
+        while ((gindex < vlen) && (ret >= 0)) {
             if (block_size == BLOCK_SIZE1) {
-                ret = vm_engine_thread1(tid, index, params, pc_error);
+                ret = vm_engine_thread1(tid, gindex, params, pc_error);
             }
             else {
-                ret = vm_engine_thread(tid, index, block_size, params, pc_error);
+                ret = vm_engine_thread(tid, gindex, block_size, params, pc_error);
             }
             if (ret < 0) {
                 /* Propagate error to main thread */
                 th_params.ret_code = ret;
                 break;
             }
-            index += nthreads*block_size;
+            pthread_mutex_lock(&count_mutex);
+            gindex += block_size;
+            pthread_mutex_unlock(&count_mutex);
         }
 
         /* Meeting point for all threads (wait for finalization) */
