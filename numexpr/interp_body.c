@@ -1,5 +1,5 @@
 {
-#define VEC_LOOP(expr) for(j = 0; j < block_size; j++) {       \
+#define VEC_LOOP(expr) for(j = 0; j < BLOCK_SIZE; j++) {       \
         expr;                                   \
     }
 #define VEC_ARG1(expr)                          \
@@ -118,7 +118,7 @@
         struct index_data id = params.index_data[r+1];
         if (id.count) {
             mem[1+r] = params.inputs[r];
-            for (j = 0; j < block_size; j++) {
+            for (j = 0; j < BLOCK_SIZE; j++) {
                 unsigned int flatindex = 0;
                 for (k = 0; k < id.count; k ++)
                     flatindex += id.strides[k] * id.index[k];
@@ -137,9 +137,12 @@
             mem[1+r] = params.inputs[r] + index * params.memsteps[1+r];
         }
     }
-    /* Get the proper places for temporaries (they depend on thread ID) */
-    for (r = 1+n_inputs+n_constants; r < 1+n_inputs+n_constants+n_temps; r++) {
-        mem[r] += block_size * params.memsizes[r] * tid;
+    if (nthreads > 1) {
+        /* Get the proper places for temporaries (they depend on thread ID) */
+        k = 1+n_inputs+n_constants;
+        for (r = k; r < k+n_temps; r++) {
+            mem[r] += BLOCK_SIZE * params.memsizes[r] * tid;
+        }
     }
 
     /* WARNING: From now on, only do references to mem[arg[123]]
@@ -280,14 +283,14 @@
         case OP_MUL_FFF: VEC_ARG2(f_dest = f1 * f2);
         case OP_DIV_FFF:
 #ifdef USE_VML
-	    VEC_ARG2_VML(vsDiv(block_size,
+	    VEC_ARG2_VML(vsDiv(BLOCK_SIZE,
                                (float*)x1, (float*)x2, (float*)dest));
 #else
 	    VEC_ARG2(f_dest = f1 / f2);
 #endif
         case OP_POW_FFF:
 #ifdef USE_VML
-	    VEC_ARG2_VML(vsPow(block_size,
+	    VEC_ARG2_VML(vsPow(BLOCK_SIZE,
                                (float*)x1, (float*)x2, (float*)dest));
 #else
 	    VEC_ARG2(f_dest = powf(f1, f2));
@@ -296,7 +299,7 @@
 
         case OP_SQRT_FF:
 #ifdef USE_VML
-	    VEC_ARG1_VML(vsSqrt(block_size, (float*)x1, (float*)dest));
+	    VEC_ARG1_VML(vsSqrt(BLOCK_SIZE, (float*)x1, (float*)dest));
 #else
 	    VEC_ARG1(f_dest = sqrtf(f1));
 #endif
@@ -305,14 +308,14 @@
 
         case OP_FUNC_FFN:
 #ifdef USE_VML
-	    VEC_ARG1_VML(functions_ff_vml[arg2](block_size,
+	    VEC_ARG1_VML(functions_ff_vml[arg2](BLOCK_SIZE,
                                                 (float*)x1, (float*)dest));
 #else
 	    VEC_ARG1(f_dest = functions_ff[arg2](f1));
 #endif
         case OP_FUNC_FFFN:
 #ifdef USE_VML
-	    VEC_ARG2_VML(functions_fff_vml[arg3](block_size,
+	    VEC_ARG2_VML(functions_fff_vml[arg3](BLOCK_SIZE,
                                                  (float*)x1, (float*)x2,
                                                  (float*)dest));
 #else
@@ -331,14 +334,14 @@
         case OP_MUL_DDD: VEC_ARG2(d_dest = d1 * d2);
         case OP_DIV_DDD:
 #ifdef USE_VML
-	    VEC_ARG2_VML(vdDiv(block_size,
+	    VEC_ARG2_VML(vdDiv(BLOCK_SIZE,
                                (double*)x1, (double*)x2, (double*)dest));
 #else
 	    VEC_ARG2(d_dest = d1 / d2);
 #endif
         case OP_POW_DDD:
 #ifdef USE_VML
-	    VEC_ARG2_VML(vdPow(block_size,
+	    VEC_ARG2_VML(vdPow(BLOCK_SIZE,
                                (double*)x1, (double*)x2, (double*)dest));
 #else
 	    VEC_ARG2(d_dest = pow(d1, d2));
@@ -347,7 +350,7 @@
 
         case OP_SQRT_DD:
 #ifdef USE_VML
-	    VEC_ARG1_VML(vdSqrt(block_size, (double*)x1, (double*)dest));
+	    VEC_ARG1_VML(vdSqrt(BLOCK_SIZE, (double*)x1, (double*)dest));
 #else
 	    VEC_ARG1(d_dest = sqrt(d1));
 #endif
@@ -356,14 +359,14 @@
 
         case OP_FUNC_DDN:
 #ifdef USE_VML
-	    VEC_ARG1_VML(functions_dd_vml[arg2](block_size,
+	    VEC_ARG1_VML(functions_dd_vml[arg2](BLOCK_SIZE,
                                                 (double*)x1, (double*)dest));
 #else
 	    VEC_ARG1(d_dest = functions_dd[arg2](d1));
 #endif
         case OP_FUNC_DDDN:
 #ifdef USE_VML
-	    VEC_ARG2_VML(functions_ddd_vml[arg3](block_size,
+	    VEC_ARG2_VML(functions_ddd_vml[arg3](BLOCK_SIZE,
                                                  (double*)x1, (double*)x2,
                                                  (double*)dest));
 #else
@@ -393,7 +396,7 @@
 				  cr_dest = da);
         case OP_DIV_CCC:
 #ifdef USE_VMLXXX /* VML complex division is slower */
-	    VEC_ARG2_VML(vzDiv(block_size, (const MKL_Complex16*)x1,
+	    VEC_ARG2_VML(vzDiv(BLOCK_SIZE, (const MKL_Complex16*)x1,
                                (const MKL_Complex16*)x2, (MKL_Complex16*)dest));
 #else
 	    VEC_ARG2(da = c2r*c2r + c2i*c2i;
@@ -408,7 +411,7 @@
                                      ci_dest = b1 ? c2i : c3i);
         case OP_FUNC_CCN:
 #ifdef USE_VML
-	    VEC_ARG1_VML(functions_cc_vml[arg2](block_size,
+	    VEC_ARG1_VML(functions_cc_vml[arg2](BLOCK_SIZE,
                                                 (const MKL_Complex16*)x1,
                                                 (MKL_Complex16*)dest));
 #else

@@ -988,10 +988,28 @@ vm_engine_serial(intp start, intp vlen, intp block_size,
     intp index;
     int tid = 0;
     for (index = start; index < vlen; index += block_size) {
+#define BLOCK_SIZE block_size
 #include "interp_body.c"
+#undef BLOCK_SIZE
     }
     return 0;
 }
+
+/* Serial version of VM engine (specific for BLOCK_SIZE1) */
+static inline int
+vm_engine_serial1(intp start, intp vlen,
+                  struct vm_params params, int *pc_error)
+{
+    intp index;
+    int tid = 0;
+    for (index = start; index < vlen; index += BLOCK_SIZE1) {
+#define BLOCK_SIZE BLOCK_SIZE1
+#include "interp_body.c"
+#undef BLOCK_SIZE
+    }
+    return 0;
+}
+
 
 /* Parallel version of VM engine */
 static inline int
@@ -1031,12 +1049,25 @@ vm_engine_parallel(intp start, intp vlen, intp block_size,
     return th_params.ret_code;
 }
 
-/* Serial version of VM engine for each thread */
+/* VM engine for each thread */
 static inline int
 vm_engine_thread(int tid, intp index, intp block_size,
                  struct vm_params params, int *pc_error)
 {
+#define BLOCK_SIZE block_size
 #include "interp_body.c"
+#undef BLOCK_SIZE
+    return 0;
+}
+
+/* VM engine for each thread (specific for BLOCK_SIZE1) */
+static inline int
+vm_engine_thread1(int tid, intp index,
+                  struct vm_params params, int *pc_error)
+{
+#define BLOCK_SIZE BLOCK_SIZE1
+#include "interp_body.c"
+#undef BLOCK_SIZE
     return 0;
 }
 
@@ -1081,7 +1112,12 @@ void *th_worker(void *tids)
         /* Loop over blocks */
         index = start + tid*block_size;
         while ((index < vlen) && (ret >= 0)) {
-            ret = vm_engine_thread(tid, index, block_size, params, pc_error);
+            if (block_size == BLOCK_SIZE1) {
+                ret = vm_engine_thread1(tid, index, params, pc_error);
+            }
+            else {
+                ret = vm_engine_thread(tid, index, block_size, params, pc_error);
+            }
             if (ret < 0) {
                 /* Propagate error to main thread */
                 th_params.ret_code = ret;
@@ -1116,7 +1152,12 @@ vm_engine_block(intp start, intp vlen, intp block_size,
        block_size is small */
     int r;
     if (nthreads == 1 || block_size <= 8) {
-        r = vm_engine_serial(start, vlen, block_size, params, pc_error);
+        if (block_size == BLOCK_SIZE1) {
+            r = vm_engine_serial1(start, vlen, params, pc_error);
+        }
+        else {
+            r = vm_engine_serial(start, vlen, block_size, params, pc_error);
+        }
     }
     else {
         r = vm_engine_parallel(start, vlen, block_size, params, pc_error);
@@ -1131,7 +1172,9 @@ vm_engine_rest(intp start, intp blen,
     intp index = start;
     intp block_size = blen - start;
     int tid = 0;
+#define BLOCK_SIZE block_size
 #include "interp_body.c"
+#undef BLOCK_SIZE
     return 0;
 }
 
