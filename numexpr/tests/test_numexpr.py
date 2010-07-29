@@ -23,6 +23,10 @@ double = numpy.double
 minimum_numpy_version = "1.2"
 
 class test_numexpr(TestCase):
+
+    def setUp(self):
+        numexpr.set_num_threads(self.nthreads)
+
     def test_simple(self):
         ex = 2.0 * E.a + 3.0 * E.b * E.c
         sig = [('a', double), ('b', double), ('c', double)]
@@ -114,6 +118,16 @@ class test_numexpr(TestCase):
         assert_equal(disassemble(NumExpr("x**2+2", [('x', double)])),
                     [('mul_ddd', 'r0', 'r1[x]', 'r1[x]'),
                      ('add_ddd', 'r0', 'r0', 'c2[2.0]')])
+
+
+class test_numexpr1(test_numexpr):
+    """Testing with 1 thread"""
+    nthreads = 1
+
+class test_numexpr2(test_numexpr):
+    """Testing with 2 threads"""
+    nthreads = 2
+
 
 class test_evaluate(TestCase):
     def test_simple(self):
@@ -578,7 +592,8 @@ def suite():
                 new.instancemethod(method, None, TestExpressions))
 
     for n in range(niter):
-        theSuite.addTest(unittest.makeSuite(test_numexpr))
+        theSuite.addTest(unittest.makeSuite(test_numexpr1))
+        theSuite.addTest(unittest.makeSuite(test_numexpr2))
         theSuite.addTest(unittest.makeSuite(test_evaluate))
         theSuite.addTest(unittest.makeSuite(TestExpressions))
         theSuite.addTest(unittest.makeSuite(test_int32_int64))
