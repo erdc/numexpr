@@ -15,6 +15,13 @@
 #include <errno.h>
 #include <limits.h>
 
+
+void die(const char *err, ...)
+{
+	printf("%s", err);
+	exit(-1);
+}
+
 static unsigned __stdcall win32_start_routine(void *arg)
 {
 	pthread_t *thread = arg;
@@ -47,7 +54,7 @@ int win32_pthread_join(pthread_t *thread, void **value_ptr)
 		case WAIT_ABANDONED:
 			return EINVAL;
 		default:
-			return err_win_to_posix(GetLastError());
+			return GetLastError();
 	}
 }
 
@@ -150,7 +157,7 @@ int pthread_cond_signal(pthread_cond_t *cond)
 	 */
 	if (have_waiters)
 		return ReleaseSemaphore(cond->sema, 1, NULL) ?
-			0 : err_win_to_posix(GetLastError());
+			0 : GetLastError();
 	else
 		return 0;
 }

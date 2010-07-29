@@ -7,7 +7,7 @@
 #include "assert.h"
 
 #if defined(_WIN32) && !defined(__MINGW32__)
-  #include "win32/pthreads.h"
+  #include "win32/pthread.h"
 #else
   #include <pthread.h>
 #endif
@@ -54,7 +54,6 @@ int init_threads_done = 0;       /* pool of threads initialized? */
 int end_threads = 0;             /* should exisiting threads end? */
 pthread_t threads[MAX_THREADS];  /* opaque structure for threads */
 int tids[MAX_THREADS];           /* ID per each thread */
-pthread_attr_t ct_attr;          /* creation time attributes for threads */
 
 /* Syncronization variables */
 pthread_mutex_t count_mutex;
@@ -87,7 +86,7 @@ static char op_signature_table[][max_args] = {
 #define Ts 's'
 #define Tn 'n'
 #define T0 0
-#define OPCODE(n, e, ex, rt, a1, a2, a3) [e] = {rt, a1, a2, a3},
+#define OPCODE(n, e, ex, rt, a1, a2, a3) {rt, a1, a2, a3},
 #include "opcodes.inc"
 #undef OPCODE
 #undef Tb
@@ -1236,14 +1235,10 @@ int init_threads(void)
     pthread_cond_init(&count_threads_cv, NULL);
     count_threads = 0;      /* Reset threads counter */
 
-    /* Initialize and create threads as joinable */
-    pthread_attr_init(&ct_attr);
-    pthread_attr_setdetachstate(&ct_attr, PTHREAD_CREATE_JOINABLE);
-
     /* Finally, create the threads */
     for (tid = 0; tid < nthreads; tid++) {
         tids[tid] = tid;
-        rc = pthread_create(&threads[tid], &ct_attr, th_worker,
+        rc = pthread_create(&threads[tid], NULL, th_worker,
                             (void *)&tids[tid]);
         if (rc) {
             fprintf(stderr,
@@ -1347,9 +1342,6 @@ void numexpr_free_resources(void)
         pthread_mutex_destroy(&count_mutex);
         pthread_mutex_destroy(&count_threads_mutex);
         pthread_cond_destroy(&count_threads_cv);
-
-        /* Thread attributes */
-        pthread_attr_destroy(&ct_attr);
 
         init_threads_done = 0;
         end_threads = 0;
