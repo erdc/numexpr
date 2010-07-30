@@ -65,11 +65,11 @@ def set_vml_num_threads(nthreads):
 
 def set_num_threads(nthreads):
     """
-    Suggests a maximum number of threads to be used in operations.
+    Sets a number of threads to be used in operations.
 
     This option allows to use several cores even though numexpr has
     not been compiled with VML support.  In case you are using numexpr
-    with VML support, use `set_vml_num_threads()` better.
+    with VML support, you may want to use `set_vml_num_threads()` too.
     """
     _set_num_threads(nthreads)
 
