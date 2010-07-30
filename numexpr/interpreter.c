@@ -1057,17 +1057,6 @@ vm_engine_parallel(intp start, intp vlen, intp block_size,
     return th_params.ret_code;
 }
 
-/* VM engine for each thread */
-static inline int
-vm_engine_thread(int tid, intp index, intp block_size,
-                 struct vm_params params, int *pc_error)
-{
-#define BLOCK_SIZE block_size
-#include "interp_body.c"
-#undef BLOCK_SIZE
-    return 0;
-}
-
 /* VM engine for each thread (specific for BLOCK_SIZE1) */
 static inline int
 vm_engine_thread1(int tid, intp index,
@@ -1129,12 +1118,7 @@ void *th_worker(void *tids)
         }
         pthread_mutex_unlock(&count_mutex);
         while ((gindex < vlen) && (ret >= 0)) {
-            if (block_size == BLOCK_SIZE1) {
-                ret = vm_engine_thread1(tid, gindex, params, pc_error);
-            }
-            else {
-                ret = vm_engine_thread(tid, gindex, block_size, params, pc_error);
-            }
+            ret = vm_engine_thread1(tid, gindex, params, pc_error);
             if (ret < 0) {
                 /* Propagate error to main thread */
                 th_params.ret_code = ret;
@@ -1170,7 +1154,7 @@ vm_engine_block(intp start, intp vlen, intp block_size,
     /* Run the serial version when nthreads is 1 or when the
        block_size is small */
     int r;
-    if (nthreads == 1 || block_size <= 8) {
+    if (nthreads == 1) {
         if (block_size == BLOCK_SIZE1) {
             r = vm_engine_serial1(start, vlen, params, pc_error);
         }
@@ -1223,11 +1207,14 @@ run_interpreter(NumExprObject *self, intp len, char *output, char **inputs,
     params.memsizes = self->memsizes;
     params.r_end = PyString_Size(self->fullsig);
     blen1 = len - len % BLOCK_SIZE1;
+    /* vm_engine_block can only be called for BLOCK_SIZE1 becuase of
+     problems in vm_engine_parallel that I haven't been able to
+     elucidate. */
     r = vm_engine_block(0, blen1, BLOCK_SIZE1, params, pc_error);
     if (r < 0) return r;
     if (len != blen1) {
         blen2 = len - len % BLOCK_SIZE2;
-        r = vm_engine_block(blen1, blen2, BLOCK_SIZE2, params, pc_error);
+        r = vm_engine_serial(blen1, blen2, BLOCK_SIZE2, params, pc_error);
         if (r < 0) return r;
         if (len != blen2) {
             r = vm_engine_rest(blen2, len, params, pc_error);
