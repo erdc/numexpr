@@ -1106,8 +1106,8 @@ void *th_worker(void *tids)
 
         /* Loop over blocks */
         index = start + tid*block_size;
-        while ((gindex < vlen) && (ret >= 0)) {
-            ret = vm_engine_thread1(tid, gindex, params, pc_error);
+        while ((index < vlen) && (ret >= 0)) {
+            ret = vm_engine_thread1(tid, index, params, pc_error);
             if (ret < 0) {
                 /* Propagate error to main thread */
                 th_params.ret_code = ret;
