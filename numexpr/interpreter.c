@@ -56,8 +56,6 @@ int init_threads_done = 0;       /* pool of threads initialized? */
 int end_threads = 0;             /* should exisiting threads end? */
 pthread_t threads[MAX_THREADS];  /* opaque structure for threads */
 int tids[MAX_THREADS];           /* ID per each thread */
-intp gindex;                     /* global index for all threads */
-int init_sentinels_done;         /* sentinels initialized? */
 
 /* Syncronization variables */
 pthread_mutex_t count_mutex;
@@ -1072,6 +1070,7 @@ vm_engine_thread1(int tid, intp index,
 void *th_worker(void *tids)
 {
     int tid = *(int *)tids;
+    intp index;
     /* Parameters for threads */
     intp start;
     intp vlen;
@@ -1081,8 +1080,6 @@ void *th_worker(void *tids)
     int ret = 0;
 
     while (1) {
-
-        init_sentinels_done = 0;     /* sentinels have to be initialised yet */
 
         /* Meeting point for all threads (wait for initialization) */
         pthread_mutex_lock(&count_threads_mutex);
@@ -1108,15 +1105,7 @@ void *th_worker(void *tids)
         pc_error = th_params.pc_error;
 
         /* Loop over blocks */
-        pthread_mutex_lock(&count_mutex);
-        if (!init_sentinels_done) {
-            /* Set sentinels and other global variables */
-            gindex = start;
-            init_sentinels_done = 1;    /* sentinels have been initialised */
-        } else {
-            gindex += block_size;
-        }
-        pthread_mutex_unlock(&count_mutex);
+        index = start + tid*block_size;
         while ((gindex < vlen) && (ret >= 0)) {
             ret = vm_engine_thread1(tid, gindex, params, pc_error);
             if (ret < 0) {
@@ -1124,9 +1113,7 @@ void *th_worker(void *tids)
                 th_params.ret_code = ret;
                 break;
             }
-            pthread_mutex_lock(&count_mutex);
-            gindex += block_size;
-            pthread_mutex_unlock(&count_mutex);
+            index += nthreads*block_size;
         }
 
         /* Meeting point for all threads (wait for finalization) */
